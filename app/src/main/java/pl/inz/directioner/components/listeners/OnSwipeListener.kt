@@ -1,4 +1,4 @@
-package pl.inz.directioner.components
+package pl.inz.directioner.components.listeners
 
 import android.content.Context
 import android.view.GestureDetector
@@ -6,7 +6,7 @@ import android.view.MotionEvent
 import android.view.View
 import kotlin.math.abs
 
-abstract class OnSwipeListener(context: Context) : View.OnTouchListener {
+abstract class OnSwipeListener(private val context: Context) : View.OnTouchListener {
 
     companion object {
         const val SWIPE_THRESHOLD = 50
