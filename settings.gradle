@@ -1,0 +1,2 @@
+rootProject.name='directioner'
+include ':app'
