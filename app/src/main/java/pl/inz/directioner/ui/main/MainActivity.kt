@@ -1,7 +1,8 @@
-package pl.inz.directioner
+package pl.inz.directioner.ui.main
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import pl.inz.directioner.R
 
 class MainActivity : AppCompatActivity() {
 
