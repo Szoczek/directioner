@@ -1,3 +1,32 @@
 <resources>
     <string name="app_name">directioner</string>
+    <string name="title_activity_main">Menu główne</string>
+    <string name="title_activity_learn_route">Nauka trasy</string>
+    <string name="title_activity_route">Trasa</string>
+    <string name="language_not_supported">Ten język nie jest wspierany</string>
+    <string name="content_not_available">Zawartość niedostępna</string>
+    <string name="location_permission_msg">Aplikacja wymaga dostępu do lokalizacji urządzenia</string>
+    <string name="location_permission_denied_msg">Dostęp do lokalizacji odrzucony. Zamykam aplikację</string>
+    <string name="one">Jeden</string>
+    <string name="two">Dwa</string>
+    <string name="three">Trzy</string>
+    <string name="four">Cztery</string>
+    <string name="double_tap">Podwójne kliknięcie</string>
+    <string name="long_click">Długie kliknięcie</string>
+    <string name="route_started">Trasa rozpoczęta</string>
+    <string name="route_learning_started">Nauka trasy rozpoczęta</string>
+    <string name="route_stopped">Trasa zakończona</string>
+    <string name="route_learning_stopped">Nauka trasy zakończona</string>
+    <string name="main_activity_introduction">Główne menu</string>
+    <string name="main_activity_introduction_msg">Przesuń w lewo, prawo, dół lub górę aby rozpocząć tworzenie nowej trasy, lub rozpocząć odtwarzanie wcześniej zapisanej trasy</string>
+    <string name="main_activity_introduction_msg_vol1">Przytrzymaj aby otworzyć ustawienia aplikacji</string>
+    <string name="main_activity_introduction_msg_vol2">Naciśnij podwójnie aby usunąć trasę</string>
+    <string name="map_learn_activity_introduction">Menu nauki trasy</string>
+    <string name="map_activity_introduction">Menu trasy</string>
+    <string name="map_activity_introduction_msg">Naciśnij dwukrotnie aby rozpocząć lub zakończyć trasę, przytrzymaj aby wrócić do głównego menu</string>
+    <string name="map_learn_activity_introduction_msg">Naciśnij dwukrotnie aby rozpocząć lub zakończyć naukę trasy, przytrzymaj aby wrócić do głównego menu</string>
+    <string name="activity_closing">Wracam do menu głównego</string>
+    <string name="delete_route">Wybierz trasę do usunięcia przesuwając w prawo, lewo, górę lub dół</string>
+
+    <string name="language_not_supported_en">This language is not supported</string>
 </resources>
