@@ -9,17 +9,24 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.rxkotlin3.addTo
 import kotlinx.android.synthetic.main.activity_route.*
 import pl.inz.directioner.R
+import pl.inz.directioner.api.maps.MapsClient
+import pl.inz.directioner.api.models.DirectionsResponse
 import pl.inz.directioner.components.BaseActivity
+import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
+import pl.inz.directioner.components.services.LocationRepository
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
 import java.io.Serializable
@@ -37,6 +44,20 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
     private lateinit var mRoute: Route
     private var routeStarted = false
     private var revertMode = false
+    private val subscriptions = CompositeDisposable()
+    private lateinit var mapClient: MapsClient
+    private lateinit var locationRepository: LocationRepository
+    private lateinit var mMapController: GoogleMapController
+    private var startPoint = LatLng(49.885407, 18.894316)
+
+    private var mWaypoints = listOf(
+        LatLng(49.8767943, 18.9212501),
+        LatLng(49.8696198, 18.9378713),
+        LatLng(49.8684286, 18.9367457),
+        LatLng(49.8621465, 18.9446868)
+    )
+
+    private var endPoint = LatLng(49.8546154, 18.9441142)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +67,51 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.routeMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
+        mapClient = MapsClient(this)
+        locationRepository = LocationRepository(this)
         initOnSwipeListener(this, this.routeListener)
         initTextToSpeech(this, this)
+    }
+
+
+    private fun start() {
+        locationRepository.getLastLocation()
+            .subscribeOn(Schedulers.io())
+            .flatMap { currentLocation ->
+                val closestLocation = getClosestLocation(currentLocation, mRoute.locations)
+                val currentDestinationIndex = mRoute.locations.indexOf(closestLocation)
+
+                var waypoints =
+                    if (mRoute.locations.size == 1)
+                        mRoute.locations
+                    else
+                        mRoute.locations
+                            .subList(currentDestinationIndex, mRoute.locations.lastIndex)
+
+                val originCoordinates = LatLng(currentLocation.latitude, currentLocation.longitude)
+
+                val destinationLocation = waypoints.last()
+                val destinationCoordinates = LatLng(
+                    destinationLocation.lat!!,
+                    destinationLocation.lon!!
+                )
+
+                waypoints = if (waypoints.size > 1) waypoints.subList(
+                    0,
+                    waypoints.lastIndex - 1
+                )
+                else mutableListOf()
+
+                mapClient.getDirectionsFromLatLng(
+                    startPoint,//originCoordinates,
+                    endPoint,//destinationCoordinates,
+                    mWaypoints//waypoints.map { LatLng(it.lat!!, it.lon!!) }
+                )
+            }.observeOn(AndroidSchedulers.mainThread())
+            .subscribe { response: DirectionsResponse ->
+                mMapController.clearMarkersAndRoute()
+                mMapController.setMarkersAndRoute(response.routes.first())
+            }.addTo(subscriptions)
     }
 
     override fun onInit(p0: Int) {
@@ -81,7 +145,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
             makeVoiceToast(R.string.route_stopped, null)
         } else {
             makeVoiceToast(R.string.route_started, null)
-            startRoute()
+            start()
         }
         return true
     }
@@ -102,27 +166,27 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        mMap.isMyLocationEnabled = true
+        mMapController = GoogleMapController(this, googleMap)
     }
 
-    private fun startRoute() {
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
-                locationClient.removeLocationUpdates(locationCallback)
-                onCurrentLocationUpdated(locationResult.locations.last())
-            }
-        }
-
-        val request = LocationRequest.create().apply {
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 5000
-            fastestInterval = 2500
-        }
-
-        routeStarted = true
-        locationClient.requestLocationUpdates(request, locationCallback, null)
-    }
+//    private fun startRoute() {
+//        locationCallback = object : LocationCallback() {
+//            override fun onLocationResult(locationResult: LocationResult?) {
+//                locationResult ?: return
+//                locationClient.removeLocationUpdates(locationCallback)
+//                onCurrentLocationUpdated(locationResult.locations.last())
+//            }
+//        }
+//
+//        val request = LocationRequest.create().apply {
+//            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+//            interval = 5000
+//            fastestInterval = 2500
+//        }
+//
+//        routeStarted = true
+//        locationClient.requestLocationUpdates(request, locationCallback, null)
+//    }
 
     private fun onCurrentLocationUpdated(currentLocation: Location) {
         val allLocations = mRoute.locations.toList()

@@ -83,6 +83,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnIn
             })
     }
 
+    @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.isMyLocationEnabled = true
@@ -133,10 +134,12 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnIn
         startSingleLocationUpdate()
     }
 
+    @SuppressLint("MissingPermission")
     private fun startSingleLocationUpdate() {
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult?) {
                 locationResult ?: return
+
                 updateLocation(locationResult.locations.last(), false)
                 removeLocationUpdates()
                 startLocationUpdates()
