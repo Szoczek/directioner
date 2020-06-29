@@ -1,16 +1,21 @@
 package pl.inz.directioner.api
 
+import hu.akarnokd.rxjava3.retrofit.RxJava3CallAdapterFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 abstract class BaseClient<T>(
-    baseUrl: String,
-    service: Class<T>
+    private val baseUrl: String,
+    private val service: Class<T>
 ) {
     abstract val apiKey: String
-    val client: T = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-        .create(service)
+    fun client(): T {
+        val retrofit = Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        return retrofit.create(service)
+    }
 }

@@ -38,6 +38,12 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
         initLocationService()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+
+        this.txtToSpeech.shutdown()
+    }
+
     private fun initLocationService() {
         if (checkGpsPermission())
             openLocationService()
