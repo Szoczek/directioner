@@ -2,28 +2,29 @@ package pl.inz.directioner.api.maps
 
 import android.content.Context
 import com.google.android.gms.maps.model.LatLng
-import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import pl.inz.directioner.R
 import pl.inz.directioner.api.BaseClient
 import pl.inz.directioner.api.maps.utils.Modes
 import pl.inz.directioner.api.models.DirectionsResponse
 import java.util.*
 
-open class MapsClient(
+class MapsClient(
     private val context: Context
 ) : BaseClient<MapsApi>(
-    "https://maps.googleapis.com/maps/api",
+    "https://maps.googleapis.com/maps/api/",
     MapsApi::class.java
 ) {
     override val apiKey: String
         get() = context.getString(R.string.google_maps_key)
 
-    open fun getDirectionsFromLatLng(
+    fun getDirectionsFromLatLng(
         origin: LatLng,
         destination: LatLng,
         waypoints: Collection<LatLng> = listOf(),
         mode: Modes = Modes.WALKING
-    ): Observable<DirectionsResponse> {
+    ): Single<DirectionsResponse> {
         val originParam = "${origin.latitude},${origin.longitude}"
         val destinationParam = "${destination.latitude},${destination.longitude}"
         val modeParam = mode.toString().toLowerCase(Locale.getDefault())
@@ -41,13 +42,13 @@ open class MapsClient(
         destination: String,
         waypoints: String?,
         mode: String
-    ): Observable<DirectionsResponse> {
-        return client.getDirections(
-            origin,
-            destination,
-            waypoints,
-            mode,
-            apiKey
-        )
+    ): Single<DirectionsResponse> {
+        return client().getDirections(
+            origin = origin,
+            destination = destination,
+            mode = mode,
+            key = apiKey,
+            waypoints = waypoints
+        ).subscribeOn(Schedulers.io())
     }
 }

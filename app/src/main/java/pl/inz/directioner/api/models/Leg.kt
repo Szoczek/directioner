@@ -11,5 +11,5 @@ data class Leg(
     @SerializedName("start_location") val startLocation: StartLocation,
     @SerializedName("steps") val steps: List<Step>,
     @SerializedName("traffic_speed_entry") val trafficSpeedEntry: List<String>,
-    @SerializedName("via_waypoint") val viaWaypoint: List<String>
+    @SerializedName("via_waypoint") val viaWaypoint: List<Waypoint>
 )
