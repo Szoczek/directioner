@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import io.objectbox.BoxStore
+import io.reactivex.rxjava3.disposables.CompositeDisposable
 import pl.inz.directioner.App
 import pl.inz.directioner.R
 import pl.inz.directioner.components.interfaces.SwipeListener
@@ -29,6 +30,7 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     protected lateinit var db: BoxStore
     protected lateinit var app: App
     protected lateinit var locationClient: FusedLocationProviderClient
+    val subscriptions = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +42,7 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
 
     override fun onDestroy() {
         super.onDestroy()
-
+        subscriptions.dispose()
         this.txtToSpeech.shutdown()
     }
 
