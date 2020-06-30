@@ -1,14 +1,16 @@
 package pl.inz.directioner.ui.route
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.location.Location
-import android.net.Uri
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -16,7 +18,6 @@ import com.google.android.gms.maps.model.LatLng
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxkotlin3.addTo
 import kotlinx.android.synthetic.main.activity_route.*
@@ -43,8 +44,6 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
     private lateinit var mMap: GoogleMap
     private lateinit var mRoute: Route
     private var routeStarted = false
-    private var revertMode = false
-    private val subscriptions = CompositeDisposable()
     private lateinit var mapClient: MapsClient
     private lateinit var locationRepository: LocationRepository
     private lateinit var mMapController: GoogleMapController
@@ -103,14 +102,18 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
                 else mutableListOf()
 
                 mapClient.getDirectionsFromLatLng(
-                    startPoint,//originCoordinates,
-                    endPoint,//destinationCoordinates,
-                    mWaypoints//waypoints.map { LatLng(it.lat!!, it.lon!!) }
+//                    startPoint
+                    originCoordinates,
+//                    endPoint,
+                    destinationCoordinates,
+//                    mWaypoints
+                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
                 )
             }.observeOn(AndroidSchedulers.mainThread())
             .subscribe { response: DirectionsResponse ->
                 mMapController.clearMarkersAndRoute()
                 mMapController.setMarkersAndRoute(response.routes.first())
+                startRoute()
             }.addTo(subscriptions)
     }
 
@@ -169,58 +172,30 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
         mMapController = GoogleMapController(this, googleMap)
     }
 
-//    private fun startRoute() {
-//        locationCallback = object : LocationCallback() {
-//            override fun onLocationResult(locationResult: LocationResult?) {
-//                locationResult ?: return
-//                locationClient.removeLocationUpdates(locationCallback)
-//                onCurrentLocationUpdated(locationResult.locations.last())
-//            }
-//        }
-//
-//        val request = LocationRequest.create().apply {
-//            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-//            interval = 5000
-//            fastestInterval = 2500
-//        }
-//
-//        routeStarted = true
-//        locationClient.requestLocationUpdates(request, locationCallback, null)
-//    }
+    @SuppressLint("MissingPermission")
+    private fun startRoute() {
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
 
-    private fun onCurrentLocationUpdated(currentLocation: Location) {
-        val allLocations = mRoute.locations.toList()
-        val locations = getLocationsFromClosest(
-            getClosestLocation(currentLocation, allLocations),
-            allLocations,
-            revertMode
-        )
-        val url = getDirectionsIntentUrl(locations, revertMode)
-        val i = Intent(Intent.ACTION_VIEW)
-        i.data = Uri.parse(url)
-        startActivity(i)
+                locationClient.removeLocationUpdates(locationCallback)
+                onCurrentLocationUpdated(locationResult.locations.last())
+            }
+        }
+
+        val request = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            interval = 5000
+            fastestInterval = 2500
+        }
+
+        routeStarted = true
+        locationClient.requestLocationUpdates(request, locationCallback, null)
     }
 
-    private fun getLocationsFromClosest(
-        closestLocation: MyLocation,
-        allLocations: List<MyLocation>,
-        revertMode: Boolean
-    ): List<MyLocation> {
-
-        val sortedLocations: List<MyLocation> = if (revertMode)
-            allLocations.sortedByDescending { it.id }
-        else
-            allLocations.sortedBy { it.id }
-
-        var res = sortedLocations.subList(
-            sortedLocations.indexOf(closestLocation),
-            sortedLocations.indexOf(sortedLocations.last())
-        )
-
-        if (res.isEmpty())
-            res = listOf(sortedLocations.last())
-
-        return res
+    private fun onCurrentLocationUpdated(currentLocation: Location) {
+        val currentLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
+        mMapController.replaceUserMarker(currentLatLng)
     }
 
     private fun getClosestLocation(
@@ -246,26 +221,6 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
         }
 
         return closestLocation
-    }
-
-    private fun getDirectionsIntentUrl(
-        locations: List<MyLocation>,
-        revertMode: Boolean
-    ): String {
-        val mode = "m=w"
-        val avoid = "avoid=thf"
-        var waypoints = ""
-
-        val points: List<MyLocation> = if (revertMode)
-            locations.sortedByDescending { it.id }
-        else
-            locations.sortedBy { it.id }
-
-
-        points.forEach {
-            waypoints += "/${it.lat},${it.lon}"
-        }
-        return "https://www.google.com/maps/dir$waypoints&$mode&$avoid"
     }
 
     private fun getRoute(id: Long): Route {
