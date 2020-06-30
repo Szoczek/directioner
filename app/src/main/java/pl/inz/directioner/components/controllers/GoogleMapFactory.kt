@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.drawable.Drawable
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
@@ -36,16 +37,23 @@ object GoogleMapFactory {
         }
     }
 
-    fun drawMarker(context: Context, text: String): Bitmap {
-        val drawable = context.resources.getDrawable(R.drawable.ic_black_marker, context.theme)
+    fun zoomToUser(userMarker: Marker): CameraUpdate {
+        return CameraUpdateFactory.newLatLngZoom(userMarker.position, 20f)
+    }
+
+    fun drawMarker(context: Context, text: String, drawable: Drawable? = null): Bitmap {
+        var icon = drawable
+        if (icon == null)
+            icon = context.resources.getDrawable(R.drawable.ic_black_marker, context.theme)
+
         val bitmap = Bitmap.createBitmap(
-            drawable.intrinsicWidth,
-            drawable.intrinsicHeight,
-            if (drawable.opacity != PixelFormat.OPAQUE) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
+            icon!!.intrinsicWidth,
+            icon.intrinsicHeight,
+            if (icon.opacity != PixelFormat.OPAQUE) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
         )
         val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
-        drawable.draw(canvas)
+        icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        icon.draw(canvas)
         val paint = Paint()
         paint.textSize = 50 * context.resources.displayMetrics.density / 2
         paint.style = Paint.Style.FILL
@@ -66,5 +74,12 @@ object GoogleMapFactory {
         polylineOptions.geodesic(true)
         polylineOptions.color(context.resources.getColor(R.color.colorAccent, context.theme))
         return polylineOptions
+    }
+
+    fun drawUserIcon(context: Context): Bitmap {
+        val drawable =
+            context.resources.getDrawable(R.drawable.ic_baseline_directions_walk_24, context.theme)
+
+        return drawMarker(context, "", drawable)
     }
 }

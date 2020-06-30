@@ -17,16 +17,7 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
 
     private var mRouteMarkerList = ArrayList<Marker>()
     private lateinit var mRoutePolyline: Polyline
-
-//    fun setCustomMarker() {
-////        val blackMarkerIcon: BitmapDescriptor =
-////            BitmapDescriptorFactory.fromResource(R.drawable.ic_spot_marker)
-////        val markerOptions: MarkerOptions =
-////            MarkerOptions().position(mTimeSquare).title(mContext.getString(R.string.time_square))
-////                .snippet(mContext.getString(R.string.i_am_snippet)).icon(blackMarkerIcon)
-////        mGoogleMap.addMarker(markerOptions)
-////        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(mTimeSquare))
-////    }
+    private var mUserMarker: Marker? = null
 
     fun animateZoomInCamera() {
         mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mTimeSquare, 15f))
@@ -36,24 +27,6 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
         mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mTimeSquare, 10f))
     }
 
-//    fun setMarkersAndZoom(spotList: List<Spot>) {
-//        val spotBitmap = BitmapDescriptorFactory.fromResource(R.drawable.ic_spot_marker)
-//
-//        for (spot in spotList) {
-//            val name = spot.name
-//            val latitude = spot.lat
-//            val longitude = spot.lng
-//            val latLng = LatLng(latitude!!, longitude!!)
-//            val markerOptions = MarkerOptions()
-//            markerOptions.position(latLng).title(name).icon(spotBitmap)
-//
-//            val marker = mGoogleMap.addMarker(markerOptions)
-//            mSpotMarkerList.add(marker)
-//        }
-//
-//        mGoogleMap.animateCamera(GoogleMapFactory.autoZoomLevel(mSpotMarkerList))
-//    }
-
     fun clearMarkers() {
         for (marker in mSpotMarkerList) {
             marker.remove()
@@ -62,37 +35,73 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
     }
 
     fun setMarkersAndRoute(route: Route) {
-        val startLatLng =
-            LatLng(route.legs.first().startLocation.lat, route.legs.first().startLocation.lng)
-        val startMarkerOptions: MarkerOptions = MarkerOptions().position(startLatLng)
-            .title(route.legs.first().startAddress)
-            .icon(
-                BitmapDescriptorFactory
-                    .fromBitmap(GoogleMapFactory.drawMarker(mContext, "S"))
-            )
-
-        val endLatLng = LatLng(route.legs.last().endLocation.lat, route.legs.last().endLocation.lng)
-        val endMarkerOptions: MarkerOptions = MarkerOptions().position(endLatLng)
-            .title(route.legs.last().endAddress)
-            .icon(
-                BitmapDescriptorFactory
-                    .fromBitmap(GoogleMapFactory.drawMarker(mContext, "E"))
-            )
-
-        val startMarker = mGoogleMap.addMarker(startMarkerOptions)
-        val endMarker = mGoogleMap.addMarker(endMarkerOptions)
-        mRouteMarkerList.add(startMarker)
-        mRouteMarkerList.add(endMarker)
-
         val polylineOptions = GoogleMapFactory.drawRoute(mContext)
-        val pointsList = PolyUtil.decode(route.overview_polyline.points)
-        for (point in pointsList) {
-            polylineOptions.add(point)
-        }
 
+        route.legs.forEach { leg ->
+            leg.steps.forEach {
+                val startLatLng =
+                    LatLng(it.startLocation.lat, it.startLocation.lng)
+                val startMarkerOptions = MarkerOptions().position(startLatLng)
+                    .icon(
+                        BitmapDescriptorFactory
+                            .fromBitmap(
+                                GoogleMapFactory.drawMarker(
+                                    mContext,
+                                    "S${leg.steps.indexOf(it)}"
+                                )
+                            )
+                    )
+
+                val endLatLng =
+                    LatLng(it.endLocation.lat, it.endLocation.lng)
+                val endMarkerOptions = MarkerOptions().position(endLatLng)
+                    .icon(
+                        BitmapDescriptorFactory
+                            .fromBitmap(
+                                GoogleMapFactory.drawMarker(
+                                    mContext,
+                                    "K${leg.steps.indexOf(it)}"
+                                )
+                            )
+                    )
+
+                val startMarker = mGoogleMap.addMarker(startMarkerOptions)
+                val endMarker = mGoogleMap.addMarker(endMarkerOptions)
+                mRouteMarkerList.add(startMarker)
+                mRouteMarkerList.add(endMarker)
+
+                val pointsList = PolyUtil.decode(it.polyline.points)
+                for (point in pointsList) {
+                    polylineOptions.add(point)
+                }
+            }
+        }
         mRoutePolyline = mGoogleMap.addPolyline(polylineOptions)
 
-        mGoogleMap.animateCamera(GoogleMapFactory.autoZoomLevel(mRouteMarkerList))
+        val currentLocation = LatLng(
+            route.legs.first().startLocation.lat,
+            route.legs.first().startLocation.lng
+        )
+        replaceUserMarker(currentLocation)
+    }
+
+    fun replaceUserMarker(currentLocation: LatLng) {
+        if (mUserMarker != null)
+            mUserMarker!!.remove()
+
+        val currentMarkerOptions = MarkerOptions().position(currentLocation)
+            .icon(
+                BitmapDescriptorFactory
+                    .fromBitmap(
+                        GoogleMapFactory.drawUserIcon(
+                            mContext
+                        )
+                    )
+            )
+
+        mUserMarker = mGoogleMap.addMarker(currentMarkerOptions)
+
+        mGoogleMap.animateCamera(GoogleMapFactory.zoomToUser(mUserMarker!!))
     }
 
     fun clearMarkersAndRoute() {
