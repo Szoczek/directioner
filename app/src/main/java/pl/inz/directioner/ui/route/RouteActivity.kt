@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import com.example.compass.Compass
+import com.example.compass.SOTW
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -47,15 +49,16 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
     private lateinit var mapClient: MapsClient
     private lateinit var locationRepository: LocationRepository
     private lateinit var mMapController: GoogleMapController
-    private var startPoint = LatLng(49.885407, 18.894316)
+    private lateinit var compass: Compass
 
+    //Mockup data
+    private var startPoint = LatLng(49.885407, 18.894316)
     private var mWaypoints = listOf(
         LatLng(49.8767943, 18.9212501),
         LatLng(49.8696198, 18.9378713),
         LatLng(49.8684286, 18.9367457),
         LatLng(49.8621465, 18.9446868)
     )
-
     private var endPoint = LatLng(49.8546154, 18.9441142)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +73,17 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
         locationRepository = LocationRepository(this)
         initOnSwipeListener(this, this.routeListener)
         initTextToSpeech(this, this)
+        compass = Compass(this)
+
+        setSubscriptions()
+    }
+
+    private var currentAzimuth = 0 to SOTW.NORTH
+    private fun setSubscriptions() {
+        compass.azimuthChangedSubject.subscribe {
+            currentAzimuth = it
+        }.addTo(subscriptions)
+        compass.start()
     }
 
 
@@ -102,12 +116,12 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
                 else mutableListOf()
 
                 mapClient.getDirectionsFromLatLng(
-//                    startPoint
-                    originCoordinates,
-//                    endPoint,
-                    destinationCoordinates,
-//                    mWaypoints
-                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
+                    startPoint,
+//                    originCoordinates,
+                    endPoint,
+//                    destinationCoordinates,
+                    mWaypoints
+//                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
                 )
             }.observeOn(AndroidSchedulers.mainThread())
             .subscribe { response: DirectionsResponse ->
