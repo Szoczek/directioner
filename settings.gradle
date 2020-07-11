@@ -1,2 +1,3 @@
+include ':app:compass'
 rootProject.name='directioner'
 include ':app'
