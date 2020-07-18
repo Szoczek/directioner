@@ -14,7 +14,7 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import io.objectbox.BoxStore
-import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.disposables.CompositeDisposable
 import pl.inz.directioner.App
 import pl.inz.directioner.R
 import pl.inz.directioner.components.interfaces.SwipeListener

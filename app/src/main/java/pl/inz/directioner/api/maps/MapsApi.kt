@@ -1,7 +1,6 @@
 package pl.inz.directioner.api.maps
 
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.Single
 import pl.inz.directioner.api.models.DirectionsResponse
 import retrofit2.http.GET
 import retrofit2.http.Query

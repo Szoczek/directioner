@@ -2,8 +2,8 @@ package pl.inz.directioner.api.maps
 
 import android.content.Context
 import com.google.android.gms.maps.model.LatLng
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
+import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import pl.inz.directioner.R
 import pl.inz.directioner.api.BaseClient
 import pl.inz.directioner.api.maps.utils.Modes

@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.Single
 
 class LocationRepository(private val context: Context) {
     private var mFusedLocationClient =
@@ -20,7 +20,7 @@ class LocationRepository(private val context: Context) {
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 mFusedLocationClient.lastLocation
-                    .addOnSuccessListener { location: Location? ->
+                    .addOnSuccessListener { location: Location ->
                         e.onSuccess(location)
                     }
             } else e.onError(Throwable("You haven't given the permissions"))

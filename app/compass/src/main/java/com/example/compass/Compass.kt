@@ -5,7 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import io.reactivex.rxjava3.subjects.PublishSubject
+import io.reactivex.subjects.PublishSubject
 
 class Compass(context: Context) : SensorEventListener {
     private var sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager

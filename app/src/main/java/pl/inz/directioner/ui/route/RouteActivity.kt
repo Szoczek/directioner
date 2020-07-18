@@ -17,11 +17,12 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.patloew.rxlocation.RxLocation
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.schedulers.Schedulers
-import io.reactivex.rxkotlin3.addTo
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.rxkotlin.addTo
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_route.*
 import pl.inz.directioner.R
 import pl.inz.directioner.api.maps.MapsClient
@@ -47,9 +48,9 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
     private lateinit var mRoute: Route
     private var routeStarted = false
     private lateinit var mapClient: MapsClient
-    private lateinit var locationRepository: LocationRepository
     private lateinit var mMapController: GoogleMapController
     private lateinit var compass: Compass
+    private lateinit var rxLocation: RxLocation
 
     //Mockup data
     private var startPoint = LatLng(49.885407, 18.894316)
@@ -70,10 +71,10 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
             .findFragmentById(R.id.routeMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
         mapClient = MapsClient(this)
-        locationRepository = LocationRepository(this)
         initOnSwipeListener(this, this.routeListener)
         initTextToSpeech(this, this)
         compass = Compass(this)
+        rxLocation = RxLocation(this)
 
         setSubscriptions()
     }
@@ -87,8 +88,9 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
     }
 
 
+    @SuppressLint("MissingPermission")
     private fun start() {
-        locationRepository.getLastLocation()
+        rxLocation.location().lastLocation()
             .subscribeOn(Schedulers.io())
             .flatMap { currentLocation ->
                 val closestLocation = getClosestLocation(currentLocation, mRoute.locations)
@@ -122,7 +124,8 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
 //                    destinationCoordinates,
                     mWaypoints
 //                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
-                )
+                ).toMaybe()
+
             }.observeOn(AndroidSchedulers.mainThread())
             .subscribe { response: DirectionsResponse ->
                 mMapController.clearMarkersAndRoute()
