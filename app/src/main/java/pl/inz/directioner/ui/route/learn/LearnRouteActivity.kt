@@ -33,7 +33,7 @@ import pl.inz.directioner.db.models.Route
 import java.io.Serializable
 import java.util.*
 
-class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitListener {
+class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
 
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
@@ -56,38 +56,21 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnIn
             .findFragmentById(R.id.learnRouteMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
         initOnSwipeListener(this, this.learnRouteListener)
-        initTextToSpeech(this, this)
+        initTextToSpeech(this)
 
         locationRepository = LocationRepository(this)
         mSignificantMotionListener = SignificantMotionListener(this, this::onSignificantMotion)
-    }
 
-    override fun onInit(p0: Int) {
-        if (p0 == TextToSpeech.SUCCESS) {
-            val result = txtToSpeech.setLanguage(Locale("pl_PL"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                txtToSpeech.language = Locale.ENGLISH
-                makeVoiceToast(R.string.language_not_supported_en, null)
-            } else
-                introduction()
-        } else
-            Log.e("error", "Initialization Failed!")
+        introduction()
     }
 
     private fun introduction() {
         makeVoiceToast(
-            R.string.map_learn_activity_introduction,
-            object : UtteranceProgressListener() {
-                override fun onDone(utteranceId: String?) {
-                    makeVoiceToast(R.string.map_learn_activity_introduction_msg, null)
-                }
-
-                override fun onError(utteranceId: String?) {
-                }
-
-                override fun onStart(utteranceId: String?) {
-                }
-            })
+            R.string.map_learn_activity_introduction
+        ).doOnComplete {
+            makeVoiceToast(R.string.map_learn_activity_introduction_msg).subscribe()
+        }.subscribe()
+            .addTo(subscriptions)
     }
 
     @SuppressLint("MissingPermission")
@@ -98,30 +81,27 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnIn
 
     override fun doubleClick(): Boolean {
         if (locationUpdatedStarted) {
-            stopLocationUpdates()
-            makeVoiceToast(R.string.route_learning_stopped, null)
+            makeVoiceToast(R.string.route_learning_stopped).doOnComplete {
+                stopLocationUpdates()
+            }.subscribe()
+                .addTo(subscriptions)
         } else {
-            startLocationUpdates()
-            makeVoiceToast(R.string.route_learning_started, null)
+            makeVoiceToast(R.string.route_learning_started).doOnComplete {
+                startLocationUpdates()
+            }.subscribe()
+                .addTo(subscriptions)
         }
         return true
     }
 
     override fun longClick() {
-        makeVoiceToast(R.string.activity_closing, object : UtteranceProgressListener() {
-            override fun onDone(utteranceId: String?) {
-                if (locationUpdatedStarted)
-                    stopLocationUpdates()
+        makeVoiceToast(R.string.activity_closing).doOnComplete {
+            if (locationUpdatedStarted)
+                stopLocationUpdates()
 
-                finish()
-            }
-
-            override fun onError(utteranceId: String?) {
-            }
-
-            override fun onStart(utteranceId: String?) {
-            }
-        })
+            finish()
+        }.subscribe()
+            .addTo(subscriptions)
     }
 
     private fun stopLocationUpdates() {
@@ -135,7 +115,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnIn
         locationRepository.getLastLocation()
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
-            .subscribe { location, error ->
+            .subscribe { location, _ ->
                 updateLocation(location, false)
             }.addTo(subscriptions)
     }

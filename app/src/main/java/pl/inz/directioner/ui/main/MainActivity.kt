@@ -1,12 +1,11 @@
 package pl.inz.directioner.ui.main
 
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.objectbox.kotlin.equal
+import io.reactivex.rxkotlin.addTo
 import kotlinx.android.synthetic.main.activity_main.*
 import pl.inz.directioner.R
 import pl.inz.directioner.components.BaseActivity
@@ -16,48 +15,30 @@ import pl.inz.directioner.ui.route.RouteActivity
 import pl.inz.directioner.ui.route.learn.LearnRouteActivity
 import pl.inz.directioner.utils.RQ_LEARN_ROUTE_ACTIVITY
 import pl.inz.directioner.utils.RQ_ROUTE_ACTIVITY
-import java.util.*
 
-class MainActivity : BaseActivity(), TextToSpeech.OnInitListener {
+class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
         initOnSwipeListener(this, this.mainContainer)
-        initTextToSpeech(this, this)
-    }
-
-    override fun onInit(p0: Int) {
-        if (p0 == TextToSpeech.SUCCESS) {
-            val result = txtToSpeech.setLanguage(Locale("pl_PL"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                txtToSpeech.language = Locale.ENGLISH
-                makeVoiceToast(R.string.language_not_supported_en, null)
-            } else
-                doubleClick()
-        } else
-            Log.e("error", "Initialization Failed!")
+        initTextToSpeech(this)
+        doubleClick()
     }
 
     override fun doubleClick(): Boolean {
         Log.e("Tap", "Double tap")
-        makeVoiceToast(R.string.main_activity_introduction, object : UtteranceProgressListener() {
-            override fun onDone(utteranceId: String?) {
-                makeVoiceToast(R.string.main_activity_introduction_msg, null)
-            }
+        makeVoiceToast(R.string.main_activity_introduction_msg)
+            .subscribe()
+            .addTo(subscriptions)
 
-            override fun onError(utteranceId: String?) {
-            }
-
-            override fun onStart(utteranceId: String?) {
-            }
-        })
         return true
     }
 
     override fun downSwipe() {
         Log.e("Swipe", "Down swipe")
-        makeVoiceToast(R.string.one, null)
+        makeVoiceToast(R.string.one).subscribe()
+            .addTo(subscriptions)
 
         val route = getRouteByNo(1)
         if (route == null)
@@ -68,7 +49,8 @@ class MainActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     override fun upSwipe() {
         Log.e("Swipe", "Up swipe")
-        makeVoiceToast(R.string.two, null)
+        makeVoiceToast(R.string.two).subscribe()
+            .addTo(subscriptions)
 
         val route = getRouteByNo(2)
         if (route == null)
@@ -79,7 +61,8 @@ class MainActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     override fun rightSwipe() {
         Log.e("Swipe", "Right swipe")
-        makeVoiceToast(R.string.three, null)
+        makeVoiceToast(R.string.three).subscribe()
+            .addTo(subscriptions)
 
         val route = getRouteByNo(3)
         if (route == null)
@@ -90,7 +73,8 @@ class MainActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     override fun leftSwipe() {
         Log.e("Swipe", "Left swipe")
-        makeVoiceToast(R.string.four, null)
+        makeVoiceToast(R.string.four).subscribe()
+            .addTo(subscriptions)
 
         val route = getRouteByNo(4)
         if (route == null)
@@ -101,7 +85,8 @@ class MainActivity : BaseActivity(), TextToSpeech.OnInitListener {
 
     override fun longClick() {
         Log.e("Click", "Long click")
-        makeVoiceToast(R.string.long_click, null)
+        makeVoiceToast(R.string.long_click).subscribe()
+            .addTo(subscriptions)
     }
 
     private fun startRouteActivity(route: Route?, no: Int?, name: String?) {
