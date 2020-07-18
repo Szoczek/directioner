@@ -17,7 +17,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 import pl.inz.directioner.App
 import pl.inz.directioner.R
-import pl.inz.directioner.components.services.RxTextToSpeechService
+import pl.inz.directioner.components.services.tts.RxTextToSpeechService
 import pl.inz.directioner.components.interfaces.SwipeListener
 import pl.inz.directioner.components.listeners.OnSwipeListener
 import pl.inz.directioner.utils.RQ_ACCESS_FINE_LOCATION_PERMISSION
@@ -57,7 +57,10 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     }
 
     protected fun initTextToSpeech(context: Context) {
-        textToSpeech = RxTextToSpeechService(context)
+        textToSpeech =
+            RxTextToSpeechService(
+                context
+            )
     }
 
     fun makeVoiceToast(id: Int): Observable<Boolean> {

@@ -1,10 +1,11 @@
-package pl.inz.directioner.components.services
+package pl.inz.directioner.components.services.tts
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.speech.tts.TextToSpeech
 import io.reactivex.Observable
+import pl.inz.directioner.components.services.tts.RxTTSObservableOnSubscribe
 import java.util.*
 
 class RxTextToSpeechService(val context: Context) {

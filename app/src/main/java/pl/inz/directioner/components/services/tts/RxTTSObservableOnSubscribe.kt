@@ -1,4 +1,4 @@
-package pl.inz.directioner.components.services
+package pl.inz.directioner.components.services.tts
 
 import android.content.Context
 import android.os.Bundle
