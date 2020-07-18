@@ -20,7 +20,9 @@
 
         <activity
             android:name=".ui.main.MainActivity"
-            android:label="@string/title_activity_main">
+            android:label="@string/title_activity_main"
+            android:screenOrientation="portrait">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -29,10 +31,12 @@
         </activity>
         <activity
             android:name=".ui.route.learn.LearnRouteActivity"
-            android:label="@string/title_activity_learn_route" />
+            android:label="@string/title_activity_learn_route"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".ui.route.RouteActivity"
-            android:label="@string/title_activity_route" />
+            android:label="@string/title_activity_route"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>
