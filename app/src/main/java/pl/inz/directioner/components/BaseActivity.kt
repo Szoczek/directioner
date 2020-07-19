@@ -30,7 +30,6 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     private lateinit var app: App
 
     protected lateinit var db: BoxStore
-    protected lateinit var locationClient: FusedLocationProviderClient
     val subscriptions = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +46,7 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     }
 
     private fun initLocationService() {
-        if (checkGpsPermission()) {
+        if (!checkGpsPermission()) {
             requestLocationPermissions()
             makeVoiceToast(R.string.location_permission_msg).doOnComplete {
                 requestLocationPermissions()
@@ -67,11 +66,6 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
         val text = resources.getString(id)
         return this.textToSpeech.speak(text)
             .debounce(200, TimeUnit.MILLISECONDS)
-    }
-
-    private fun openLocationService() {
-        locationClient =
-            LocationServices.getFusedLocationProviderClient(this)
     }
 
     private fun checkGpsPermission(): Boolean {
@@ -95,9 +89,7 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     ) {
         when (requestCode) {
             RQ_ACCESS_FINE_LOCATION_PERMISSION -> {
-                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    openLocationService()
-                } else {
+                if (!(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     makeVoiceToast(R.string.location_permission_denied_msg).doOnComplete {
                         finish()
                         exitProcess(0)
