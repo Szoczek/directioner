@@ -72,10 +72,10 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         this.showMapLearn.setOnClickListener {
             if (this.learnRouteListener.isVisible) {
                 this.learnRouteListener.visibility = View.GONE
-                this.learnRouteListener.setText(R.string.hide_map)
+                this.showMapLearn.setText(R.string.hide_map)
             } else {
                 this.learnRouteListener.visibility = View.VISIBLE
-                this.learnRouteListener.setText(R.string.show_map)
+                this.showMapLearn.setText(R.string.show_map)
             }
         }
     }

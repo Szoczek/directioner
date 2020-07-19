@@ -99,10 +99,10 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         this.showMap.setOnClickListener {
             if (this.routeListener.isVisible) {
                 this.routeListener.visibility = View.GONE
-                this.routeListener.setText(R.string.hide_map)
+                this.showMap.setText(R.string.hide_map)
             } else {
                 this.routeListener.visibility = View.VISIBLE
-                this.routeListener.setText(R.string.show_map)
+                this.showMap.setText(R.string.show_map)
             }
         }
     }
