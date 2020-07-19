@@ -3,4 +3,5 @@
     <string name="turn_left">Skręć w lewo</string>
     <string name="turn_right">Skręć w prawo</string>
     <string name="go_straight">Idź nadal prosto</string>
+    <string name="you_have_arrived">Jesteś na miejscu</string>
 </resources>
