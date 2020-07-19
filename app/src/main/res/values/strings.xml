@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">directioner</string>
+    <string name="show_map">Pokaż mapę</string>
+    <string name="hide_map">Showaj mapę</string>
+    <string name="listener">Wykrywacz gestów</string>
     <string name="title_activity_main">Menu główne</string>
     <string name="title_activity_learn_route">Nauka trasy</string>
     <string name="title_activity_route">Trasa</string>

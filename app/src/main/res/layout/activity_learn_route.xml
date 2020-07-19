@@ -1,22 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".ui.route.learn.LearnRouteActivity">
+
+    <Button
+        android:id="@+id/showMapLearn"
+        android:textSize="14sp"
+        android:text="@string/show_map"
+        android:layout_width="match_parent"
+        android:translationZ="999sp"
+        android:layout_alignParentTop="true"
+        android:layout_height="wrap_content"
+        android:background="@color/colorAccent"/>
 
     <Button
         android:id="@+id/learnRouteListener"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:orientation="vertical" />
+        android:visibility="visible"
+        android:layout_below="@+id/showMapLearn"
+        android:translationZ="990sp"
+        android:text="@string/listener"
+        android:layout_height="match_parent"/>
 
     <fragment
         android:id="@+id/learnRouteMap"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_below="@+id/showMapLearn"
+        android:layout_height="match_parent"
         android:layout_gravity="bottom" />
-</LinearLayout>
+
+</RelativeLayout>

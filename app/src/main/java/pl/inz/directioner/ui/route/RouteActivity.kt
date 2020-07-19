@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.os.Bundle
+import android.view.View
 import android.view.WindowManager
+import androidx.core.view.isVisible
 import com.example.compass.Compass
 import com.example.compass.SOTW
 import com.google.android.gms.location.LocationRequest
@@ -20,7 +22,9 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
+import kotlinx.android.synthetic.main.activity_learn_route.*
 import kotlinx.android.synthetic.main.activity_route.*
+import kotlinx.android.synthetic.main.activity_route.showMap
 import pl.inz.directioner.R
 import pl.inz.directioner.api.maps.MapsClient
 import pl.inz.directioner.api.models.DirectionsResponse
@@ -78,6 +82,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         mCompass = Compass(this)
         rxLocation = RxLocation(this)
 
+        initUI()
         introduction()
         setSubscriptions()
     }
@@ -90,6 +95,17 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         mCompass.start()
     }
 
+    private fun initUI() {
+        this.showMap.setOnClickListener {
+            if (this.routeListener.isVisible) {
+                this.routeListener.visibility = View.GONE
+                this.routeListener.setText(R.string.hide_map)
+            } else {
+                this.routeListener.visibility = View.VISIBLE
+                this.routeListener.setText(R.string.show_map)
+            }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     private fun start() {

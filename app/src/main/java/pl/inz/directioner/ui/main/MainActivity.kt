@@ -21,7 +21,7 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
-        initOnSwipeListener(this, this.mainContainer)
+        initOnSwipeListener(this, this.listener)
         initTextToSpeech(this)
     }
 

@@ -1,16 +1,20 @@
 package pl.inz.directioner.ui.route.learn
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.location.Location
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
-import android.util.Log
-import com.google.android.gms.location.LocationCallback
+import android.view.View
+import androidx.core.view.isVisible
+import com.example.compass.Compass
+import com.example.compass.SOTW
 import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -27,16 +31,14 @@ import kotlinx.android.synthetic.main.activity_learn_route.*
 import pl.inz.directioner.R
 import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
-import pl.inz.directioner.components.listeners.SignificantMotionListener
-import pl.inz.directioner.components.services.LocationRepository
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
-import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
-
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_LEARN_ROUTE_DATA_INTENT
@@ -45,8 +47,8 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var mMap: GoogleMap
     private lateinit var mRoute: Route
     private var locationUpdatedStarted = false
-    private lateinit var mSignificantMotionListener: SignificantMotionListener
     private lateinit var rxLocation: RxLocation
+    private lateinit var mCompass: Compass
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,9 +61,23 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         initOnSwipeListener(this, this.learnRouteListener)
         initTextToSpeech(this)
         rxLocation = RxLocation(this)
-        mSignificantMotionListener = SignificantMotionListener(this, this::onSignificantMotion)
+        mCompass = Compass(this)
 
+        initUI()
         introduction()
+        setSubscriptions()
+    }
+
+    private fun initUI() {
+        this.showMapLearn.setOnClickListener {
+            if (this.learnRouteListener.isVisible) {
+                this.learnRouteListener.visibility = View.GONE
+                this.learnRouteListener.setText(R.string.hide_map)
+            } else {
+                this.learnRouteListener.visibility = View.VISIBLE
+                this.learnRouteListener.setText(R.string.show_map)
+            }
+        }
     }
 
     private fun introduction() {
@@ -71,6 +87,24 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
             makeVoiceToast(R.string.map_learn_activity_introduction_msg).subscribe()
         }.subscribe()
             .addTo(subscriptions)
+    }
+
+    private var currentAzimuth: Pair<Int, SOTW>? = null
+    private fun setSubscriptions() {
+        mCompass.azimuthChangedSubject
+            .debounce(5000, TimeUnit.MILLISECONDS)
+            .subscribe {
+                when {
+                    currentAzimuth == null -> {
+                        currentAzimuth = it
+                    }
+                    currentAzimuth!!.second != it.second -> {
+                        onSignificantMotion()
+                        currentAzimuth = it
+                    }
+                }
+            }.addTo(subscriptions)
+        mCompass.start()
     }
 
     @SuppressLint("MissingPermission")
@@ -124,11 +158,12 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun startLocationUpdates() {
         val request = LocationRequest.create().apply {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 60000
+            interval = 1000
         }
 
         rxLocation.location().updates(request)
             .subscribeOn(Schedulers.io())
+            .debounce(30, TimeUnit.SECONDS)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 updateLocation(it, true)
