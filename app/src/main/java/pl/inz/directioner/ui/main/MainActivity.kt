@@ -23,16 +23,22 @@ class MainActivity : BaseActivity() {
         setContentView(R.layout.activity_main)
         initOnSwipeListener(this, this.mainContainer)
         initTextToSpeech(this)
-        doubleClick()
     }
 
     override fun doubleClick(): Boolean {
         Log.e("Tap", "Double tap")
-        makeVoiceToast(R.string.main_activity_introduction_msg)
-            .subscribe()
+        makeVoiceToast(R.string.main_activity_introduction).doOnComplete {
+            makeVoiceToast(R.string.main_activity_introduction_msg)
+                .subscribe()
+        }.subscribe()
             .addTo(subscriptions)
 
         return true
+    }
+
+    override fun onStart() {
+        super.onStart()
+        doubleClick()
     }
 
     override fun downSwipe() {
