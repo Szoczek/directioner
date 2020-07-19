@@ -5,14 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
-import android.util.Log
+import android.view.WindowManager
 import com.example.compass.Compass
 import com.example.compass.SOTW
-import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -20,6 +16,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.patloew.rxlocation.RxLocation
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
+import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
@@ -27,30 +24,34 @@ import kotlinx.android.synthetic.main.activity_route.*
 import pl.inz.directioner.R
 import pl.inz.directioner.api.maps.MapsClient
 import pl.inz.directioner.api.models.DirectionsResponse
+import pl.inz.directioner.api.models.Leg
+import pl.inz.directioner.api.models.Step
 import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
-import pl.inz.directioner.components.services.LocationRepository
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
+import kotlin.math.roundToInt
 
-
-class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitListener {
+class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_ROUTE_DATA_INTENT
         ) as DataIntent
     }
-    private lateinit var locationCallback: LocationCallback
     private lateinit var mMap: GoogleMap
-    private lateinit var mRoute: Route
-    private var routeStarted = false
-    private lateinit var mapClient: MapsClient
-    private lateinit var mMapController: GoogleMapController
-    private lateinit var compass: Compass
+    private lateinit var mapApiClient: MapsClient
+    private lateinit var mMapUiController: GoogleMapController
+    private lateinit var mCompass: Compass
     private lateinit var rxLocation: RxLocation
+    private lateinit var mCurrentLeg: Leg
+    private lateinit var mCurrentStep: Step
+
+    private var routeStarted = false
+    private var isNextStepProcessing = false
 
     //Mockup data
     private var startPoint = LatLng(49.885407, 18.894316)
@@ -64,27 +65,28 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        mRoute = getRoute(dataIntent.routeId)
         setContentView(R.layout.activity_route)
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.routeMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
-        mapClient = MapsClient(this)
+        mapApiClient = MapsClient(this)
         initOnSwipeListener(this, this.routeListener)
-        initTextToSpeech(this, this)
-        compass = Compass(this)
+        initTextToSpeech(this)
+        mCompass = Compass(this)
         rxLocation = RxLocation(this)
 
+        introduction()
         setSubscriptions()
     }
 
     private var currentAzimuth = 0 to SOTW.NORTH
     private fun setSubscriptions() {
-        compass.azimuthChangedSubject.subscribe {
+        mCompass.azimuthChangedSubject.subscribe {
             currentAzimuth = it
         }.addTo(subscriptions)
-        compass.start()
+        mCompass.start()
     }
 
 
@@ -93,15 +95,16 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
         rxLocation.location().lastLocation()
             .subscribeOn(Schedulers.io())
             .flatMap { currentLocation ->
-                val closestLocation = getClosestLocation(currentLocation, mRoute.locations)
-                val currentDestinationIndex = mRoute.locations.indexOf(closestLocation)
+                val route = getRoute(dataIntent.routeId)
+                val closestLocation = getClosestLocation(currentLocation, route.locations)
+                val currentDestinationIndex = route.locations.indexOf(closestLocation)
 
                 var waypoints =
-                    if (mRoute.locations.size == 1)
-                        mRoute.locations
+                    if (route.locations.size == 1)
+                        route.locations
                     else
-                        mRoute.locations
-                            .subList(currentDestinationIndex, mRoute.locations.lastIndex)
+                        route.locations
+                            .subList(currentDestinationIndex, route.locations.lastIndex)
 
                 val originCoordinates = LatLng(currentLocation.latitude, currentLocation.longitude)
 
@@ -117,7 +120,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
                 )
                 else mutableListOf()
 
-                mapClient.getDirectionsFromLatLng(
+                mapApiClient.getDirectionsFromLatLng(
                     startPoint,
 //                    originCoordinates,
                     endPoint,
@@ -128,91 +131,158 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback, TextToSpeech.OnInitLis
 
             }.observeOn(AndroidSchedulers.mainThread())
             .subscribe { response: DirectionsResponse ->
-                mMapController.clearMarkersAndRoute()
-                mMapController.setMarkersAndRoute(response.routes.first())
+                val currentRoute = response.routes.first()
+                mCurrentLeg = currentRoute.legs.first()
+                mCurrentStep = mCurrentLeg.steps.first()
+
+                mMapUiController.clearMarkersAndRoute()
+                mMapUiController.setMarkersAndRoute(currentRoute)
                 startRoute()
             }.addTo(subscriptions)
     }
 
-    override fun onInit(p0: Int) {
-        if (p0 == TextToSpeech.SUCCESS) {
-            val result = txtToSpeech.setLanguage(Locale("pl_PL"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                txtToSpeech.language = Locale.ENGLISH
-                makeVoiceToast(R.string.language_not_supported_en, null)
-            } else
-                introduction()
-        } else
-            Log.e("error", "Initialization Failed!")
-    }
-
     private fun introduction() {
-        makeVoiceToast(R.string.map_activity_introduction, object : UtteranceProgressListener() {
-            override fun onDone(utteranceId: String?) {
-                makeVoiceToast(R.string.map_activity_introduction_msg, null)
-            }
-
-            override fun onError(utteranceId: String?) {
-            }
-
-            override fun onStart(utteranceId: String?) {
-            }
-        })
+        makeVoiceToast(R.string.map_activity_introduction).doOnComplete {
+            makeVoiceToast(R.string.map_activity_introduction_msg)
+                .subscribe()
+        }.subscribe()
+            .addTo(subscriptions)
     }
 
     override fun doubleClick(): Boolean {
         if (routeStarted) {
-            makeVoiceToast(R.string.route_stopped, null)
+            makeVoiceToast(R.string.route_stopped).subscribe()
+                .addTo(subscriptions)
         } else {
-            makeVoiceToast(R.string.route_started, null)
-            start()
+            makeVoiceToast(R.string.route_started).doOnComplete {
+                start()
+            }.subscribe()
+                .addTo(subscriptions)
         }
         return true
     }
 
+    private var bypassFilters = false
+    override fun leftSwipe() {
+        bypassFilters = true
+    }
+
+    override fun rightSwipe() {
+        finishRoute()
+    }
+
     override fun longClick() {
-        makeVoiceToast(R.string.activity_closing, object : UtteranceProgressListener() {
-            override fun onDone(utteranceId: String?) {
-                finish()
-            }
-
-            override fun onError(utteranceId: String?) {
-            }
-
-            override fun onStart(utteranceId: String?) {
-            }
-        })
+        makeVoiceToast(R.string.activity_closing).doOnComplete {
+            finish()
+        }.subscribe()
+            .addTo(subscriptions)
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        mMapController = GoogleMapController(this, googleMap)
+        mMapUiController = GoogleMapController(this, googleMap)
     }
 
     @SuppressLint("MissingPermission")
     private fun startRoute() {
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
-
-                locationClient.removeLocationUpdates(locationCallback)
-                onCurrentLocationUpdated(locationResult.locations.last())
-            }
-        }
-
         val request = LocationRequest.create().apply {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 5000
-            fastestInterval = 2500
+            interval = 30000
         }
+        isNextStepProcessing = false
+        rxLocation.location().updates(request)
+            .subscribeOn(Schedulers.io())
+            .filter {
+                !isNextStepProcessing
+            }
+            .switchMap {
+                onCurrentLocationUpdated(it)
+                it.toObservable()
+            }
+            .filter {
+                bypassFilters ||
+                        isLocationCloseToGoal(it)
+            }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe {
+                isNextStepProcessing = true
+                val nextStep = getNextStepOrNull()
+                if (nextStep == null)
+                    finishRoute()
+                else
+                    startStep(nextStep)
+            }.addTo(subscriptions)
 
         routeStarted = true
-        locationClient.requestLocationUpdates(request, locationCallback, null)
+    }
+
+    private fun getNextStepOrNull(): Step? {
+        val nextIndex = mCurrentLeg.steps.indexOf(mCurrentStep) + 1
+        val isCurrentStepLast = mCurrentLeg.steps.size == (nextIndex)
+
+        return if (isCurrentStepLast)
+            null
+        else
+            mCurrentLeg.steps[(nextIndex)]
+    }
+
+
+    private fun startStep(step: Step) {
+        getDirectionsForStep(step).switchMap {
+            makeVoiceToast(it)
+        }.subscribe {
+            bypassFilters = false
+
+            isNextStepProcessing = false
+            mCurrentStep = step
+        }.addTo(subscriptions)
+    }
+
+    private fun finishRoute() {
+        routeStarted = false
+
+        makeVoiceToast(R.string.you_have_arrived).doOnComplete {
+            makeVoiceToast(R.string.activity_closing).doOnComplete {
+                finish()
+            }.subscribe()
+        }.subscribe()
+            .addTo(subscriptions)
+    }
+
+    private fun getDirectionsForStep(step: Step): Observable<Int> {
+        val currentManeuverRaw = step.maneuver
+
+        return when (currentManeuverRaw.toLowerCase(Locale.ROOT)) {
+            "turn-left" -> {
+                R.string.turn_left.toObservable()
+            }
+
+            "turn-right" -> {
+                R.string.turn_right.toObservable()
+            }
+
+            else -> {
+                R.string.go_straight.toObservable()
+            }
+        }
     }
 
     private fun onCurrentLocationUpdated(currentLocation: Location) {
         val currentLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
-        mMapController.replaceUserMarker(currentLatLng)
+        mMapUiController.replaceUserMarker(currentLatLng)
+    }
+
+    private fun isLocationCloseToGoal(location: Location): Boolean {
+        val distance = FloatArray(3)
+        Location.distanceBetween(
+            location.latitude,
+            location.longitude,
+            mCurrentStep.endLocation.lat,
+            mCurrentStep.endLocation.lng,
+            distance
+        )
+
+        return distance[0].roundToInt() <= 1
     }
 
     private fun getClosestLocation(
