@@ -17,6 +17,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.patloew.rxlocation.RxLocation
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -30,6 +31,7 @@ import pl.inz.directioner.components.listeners.SignificantMotionListener
 import pl.inz.directioner.components.services.LocationRepository
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
 
@@ -45,7 +47,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var mRoute: Route
     private var locationUpdatedStarted = false
     private lateinit var mSignificantMotionListener: SignificantMotionListener
-    private lateinit var locationRepository: LocationRepository
+    private lateinit var rxLocation: RxLocation
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,8 +59,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
         initOnSwipeListener(this, this.learnRouteListener)
         initTextToSpeech(this)
-
-        locationRepository = LocationRepository(this)
+        rxLocation = RxLocation(this)
         mSignificantMotionListener = SignificantMotionListener(this, this::onSignificantMotion)
 
         introduction()
@@ -107,36 +108,33 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun stopLocationUpdates() {
         val box: Box<Route> = db.boxFor()
         box.put(mRoute)
-        locationClient.removeLocationUpdates(locationCallback)
         locationUpdatedStarted = false
     }
 
+    @SuppressLint("MissingPermission")
     private fun onSignificantMotion() {
-        locationRepository.getLastLocation()
+        rxLocation.location().lastLocation()
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
-            .subscribe { location, _ ->
-                updateLocation(location, false)
+            .subscribe {
+                updateLocation(it, false)
             }.addTo(subscriptions)
     }
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
-                updateLocation(locationResult.locations.last(), true)
-            }
-        }
-
         val request = LocationRequest.create().apply {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 20000
-            fastestInterval = 10000
-            smallestDisplacement = 5f
+            interval = 60000
         }
 
-        locationClient.requestLocationUpdates(request, locationCallback, null)
+        rxLocation.location().updates(request)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe {
+                updateLocation(it, true)
+            }.addTo(subscriptions)
+
         locationUpdatedStarted = true
     }
 
@@ -194,7 +192,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
             distance
         )
 
-        return distance[0] > 5f
+        return distance[0] > 10f
     }
 
     private fun createRoute(no: Int, name: String): Route {
