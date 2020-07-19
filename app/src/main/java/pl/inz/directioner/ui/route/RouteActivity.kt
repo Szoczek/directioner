@@ -34,6 +34,7 @@ import pl.inz.directioner.db.models.Route
 import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 class RouteActivity : BaseActivity(), OnMapReadyCallback {
@@ -187,11 +188,12 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun startRoute() {
         val request = LocationRequest.create().apply {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 30000
+            interval = 1000
         }
         isNextStepProcessing = false
         rxLocation.location().updates(request)
             .subscribeOn(Schedulers.io())
+            .debounce (30, TimeUnit.SECONDS)
             .filter {
                 !isNextStepProcessing
             }
@@ -252,7 +254,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun getDirectionsForStep(step: Step): Observable<Int> {
         val currentManeuverRaw = step.maneuver
 
-        return when (currentManeuverRaw.toLowerCase(Locale.ROOT)) {
+        return when (currentManeuverRaw?.toLowerCase(Locale.ROOT)) {
             "turn-left" -> {
                 R.string.turn_left.toObservable()
             }

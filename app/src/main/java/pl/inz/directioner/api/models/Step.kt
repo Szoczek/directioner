@@ -10,5 +10,5 @@ data class Step(
     @SerializedName("start_location") val startLocation: StartLocation,
     @SerializedName("travel_mode") val travelMode: String,
     @SerializedName("html_instructions") val instructions: String,
-    @SerializedName("maneuver") val maneuver: String
+    @SerializedName("maneuver") val maneuver: String?
 )

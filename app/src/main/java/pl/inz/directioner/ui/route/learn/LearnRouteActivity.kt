@@ -42,7 +42,6 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
             ARG_LEARN_ROUTE_DATA_INTENT
         ) as DataIntent
     }
-    private lateinit var locationCallback: LocationCallback
     private lateinit var mMap: GoogleMap
     private lateinit var mRoute: Route
     private var locationUpdatedStarted = false
