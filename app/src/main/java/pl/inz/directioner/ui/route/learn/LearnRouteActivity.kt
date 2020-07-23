@@ -122,10 +122,11 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
             }.subscribe()
                 .addTo(subscriptions)
         } else {
-            makeVoiceToast(R.string.route_learning_started).doOnComplete {
-                startLocationUpdates()
-            }.subscribe()
+            makeVoiceToast(R.string.route_learning_started)
+                .subscribe()
                 .addTo(subscriptions)
+
+            startLocationUpdates()
         }
         return true
     }
@@ -156,6 +157,7 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
             }.addTo(subscriptions)
     }
 
+
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
         val request = LocationRequest.create().apply {
@@ -164,9 +166,8 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
         }
 
         rxLocation.location().updates(request)
-            .subscribeOn(Schedulers.io())
+            .subscribeOn(Schedulers.single())
             .debounce(30, TimeUnit.SECONDS)
-            .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 updateLocation(it, true)
             }.addTo(subscriptions)

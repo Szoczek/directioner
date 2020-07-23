@@ -82,7 +82,7 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
             route.legs.first().startLocation.lat,
             route.legs.first().startLocation.lng
         )
-        replaceUserMarker(currentLocation)
+//        replaceUserMarker(currentLocation)
     }
 
     fun replaceUserMarker(currentLocation: LatLng) {

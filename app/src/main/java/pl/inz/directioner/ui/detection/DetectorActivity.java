@@ -44,7 +44,7 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
     // Minimum detection confidence to track a detection.
     private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.5f;
     private static final boolean MAINTAIN_ASPECT = false;
-    private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 480);
+    private static final Size DESIRED_PREVIEW_SIZE = new Size(0, 0);
     private static final boolean SAVE_PREVIEW_BITMAP = false;
     private static final float TEXT_SIZE_DIP = 10;
     OverlayView trackingOverlay;
@@ -64,6 +64,7 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
 
     public DetectorActivity(boolean isLearn) {
         this.isLearn = isLearn;
+
     }
 
     @Override
@@ -86,6 +87,8 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
                             TF_OD_API_LABELS_FILE,
                             TF_OD_API_INPUT_SIZE,
                             TF_OD_API_IS_QUANTIZED);
+
+            setNumThreads(3);
             cropSize = TF_OD_API_INPUT_SIZE;
         } catch (final IOException e) {
             e.printStackTrace();

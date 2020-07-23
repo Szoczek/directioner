@@ -201,8 +201,10 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
             .addTo(subscriptions)
     }
 
+    @SuppressLint("MissingPermission")
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+        mMap.isMyLocationEnabled = true
         mMapUiController = GoogleMapController(this, googleMap)
     }
 
@@ -293,7 +295,7 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
 
     private fun onCurrentLocationUpdated(currentLocation: Location) {
         val currentLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
-        mMapUiController.replaceUserMarker(currentLatLng)
+//        mMapUiController.replaceUserMarker(currentLatLng)
     }
 
     private fun isLocationCloseToGoal(location: Location): Boolean {

@@ -71,9 +71,12 @@ public abstract class CameraActivity extends BaseActivity
     /**
      * Callback for android.hardware.Camera API
      */
+    Integer index = 0;
+
     @Override
     public void onPreviewFrame(final byte[] bytes, final Camera camera) {
-        if (isProcessingFrame) {
+        ++index;
+        if (isProcessingFrame || index / 5 != 0) {
             LOGGER.w("Dropping frame!");
             return;
         }
