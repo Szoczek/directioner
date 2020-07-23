@@ -6,6 +6,7 @@
     <string name="title_activity_main">Menu główne</string>
     <string name="title_activity_learn_route">Nauka trasy</string>
     <string name="title_activity_route">Trasa</string>
+    <string name="title_activity_detection">Rozpoznawanie</string>
     <string name="language_not_supported">Ten język nie jest wspierany</string>
     <string name="content_not_available">Zawartość niedostępna</string>
     <string name="location_permission_msg">Aplikacja wymaga dostępu do lokalizacji urządzenia</string>

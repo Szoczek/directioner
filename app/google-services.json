@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "846278080309",
+    "firebase_url": "https://inzynier-1560681896232.firebaseio.com",
+    "project_id": "inzynier-1560681896232",
+    "storage_bucket": "inzynier-1560681896232.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:846278080309:android:962406318e77df4c043e7c",
+        "android_client_info": {
+          "package_name": "pl.inz.directioner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "846278080309-1itbib5oet3lbec4ulns9hqdobb2t990.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdC0CDk5HI0LV1jXI0bWW585FBpdOCgRY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "846278080309-1itbib5oet3lbec4ulns9hqdobb2t990.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
