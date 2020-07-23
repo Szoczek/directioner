@@ -7,23 +7,36 @@
 
     <Button
         android:id="@+id/showMap"
-        android:textSize="14sp"
-        android:text="@string/show_map"
         android:layout_width="match_parent"
-        android:translationZ="999sp"
-        android:layout_margin="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/colorAccent"/>
+        android:layout_margin="0dp"
+        android:background="@color/colorAccent"
+        android:text="@string/show_map"
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/routeListener"
         android:layout_width="match_parent"
-        android:visibility="visible"
-        android:translationZ="990sp"
+        android:layout_height="match_parent"
         android:layout_below="@+id/showMap"
         android:layout_margin="0dp"
+        android:alpha="0"
         android:text="@string/listener"
-        android:layout_height="match_parent"/>
+        android:translationZ="999sp" />
+
+    <FrameLayout
+        android:id="@+id/routeCamera"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/showMap"
+        android:translationZ="888sp">
+
+        <FrameLayout
+            android:id="@+id/routeContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context=".ui.detection.CameraActivity" />
+    </FrameLayout>
 
     <fragment
         android:id="@+id/routeMap"

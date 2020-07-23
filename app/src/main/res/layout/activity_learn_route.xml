@@ -7,29 +7,41 @@
 
     <Button
         android:id="@+id/showMapLearn"
-        android:textSize="14sp"
-        android:text="@string/show_map"
         android:layout_width="match_parent"
-        android:translationZ="999sp"
-        android:layout_alignParentTop="true"
         android:layout_height="wrap_content"
-        android:background="@color/colorAccent"/>
+        android:layout_alignParentTop="true"
+        android:background="@color/colorAccent"
+        android:text="@string/show_map"
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/learnRouteListener"
         android:layout_width="match_parent"
-        android:visibility="visible"
+        android:layout_height="match_parent"
         android:layout_below="@+id/showMapLearn"
-        android:translationZ="990sp"
+        android:alpha="0"
         android:text="@string/listener"
-        android:layout_height="match_parent"/>
+        android:translationZ="999sp" />
+
+    <FrameLayout
+        android:id="@+id/learnRouteCamera"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/showMapLearn"
+        android:translationZ="888sp">
+
+        <FrameLayout
+            android:id="@+id/learnContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:context=".ui.detection.CameraActivity" />
+    </FrameLayout>
 
     <fragment
         android:id="@+id/learnRouteMap"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_below="@+id/showMapLearn"
         android:layout_height="match_parent"
-        android:layout_gravity="bottom" />
+        android:layout_below="@+id/showMapLearn" />
 
 </RelativeLayout>

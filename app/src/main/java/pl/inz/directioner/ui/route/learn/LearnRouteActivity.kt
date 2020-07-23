@@ -1,17 +1,10 @@
 package pl.inz.directioner.ui.route.learn
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.location.Location
 import android.os.Bundle
-import android.view.View
-import androidx.core.view.isVisible
 import com.example.compass.Compass
 import com.example.compass.SOTW
 import com.google.android.gms.location.LocationRequest
@@ -29,16 +22,15 @@ import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_learn_route.*
 import pl.inz.directioner.R
-import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.ui.detection.DetectorActivity
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.math.abs
 
-class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
+class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_LEARN_ROUTE_DATA_INTENT
@@ -49,13 +41,14 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private var locationUpdatedStarted = false
     private lateinit var rxLocation: RxLocation
     private lateinit var mCompass: Compass
+    private lateinit var mapFragment: SupportMapFragment
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         mRoute = createRoute(dataIntent.no, dataIntent.name)
         setContentView(R.layout.activity_learn_route)
-        val mapFragment = supportFragmentManager
+        mapFragment = supportFragmentManager
             .findFragmentById(R.id.learnRouteMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
         initOnSwipeListener(this, this.learnRouteListener)
@@ -68,13 +61,18 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         setSubscriptions()
     }
 
+    var isListenerVisible = true
     private fun initUI() {
         this.showMapLearn.setOnClickListener {
-            if (this.learnRouteListener.isVisible) {
-                this.learnRouteListener.visibility = View.GONE
+            if (isListenerVisible) {
+                this.learnRouteCamera.translationZ = -888f
+                this.learnRouteListener.translationZ = -999f
+                isListenerVisible = false
                 this.showMapLearn.setText(R.string.hide_map)
             } else {
-                this.learnRouteListener.visibility = View.VISIBLE
+                this.learnRouteCamera.translationZ = 888f
+                this.learnRouteListener.translationZ = 999f
+                isListenerVisible = true
                 this.showMapLearn.setText(R.string.show_map)
             }
         }
@@ -111,6 +109,10 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.isMyLocationEnabled = true
+    }
+
+    override fun dangerDetected() {
+        TODO("Not yet implemented")
     }
 
     override fun doubleClick(): Boolean {

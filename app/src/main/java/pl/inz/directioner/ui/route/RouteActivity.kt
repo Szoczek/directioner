@@ -5,9 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.location.Location
 import android.os.Bundle
-import android.view.View
 import android.view.WindowManager
-import androidx.core.view.isVisible
 import com.example.compass.Compass
 import com.example.compass.SOTW
 import com.google.android.gms.location.LocationRequest
@@ -22,26 +20,24 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
-import kotlinx.android.synthetic.main.activity_learn_route.*
 import kotlinx.android.synthetic.main.activity_route.*
-import kotlinx.android.synthetic.main.activity_route.showMap
 import pl.inz.directioner.R
 import pl.inz.directioner.api.maps.MapsClient
 import pl.inz.directioner.api.models.DirectionsResponse
 import pl.inz.directioner.api.models.Leg
 import pl.inz.directioner.api.models.Step
-import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.ui.detection.DetectorActivity
 import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
-class RouteActivity : BaseActivity(), OnMapReadyCallback {
+class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_ROUTE_DATA_INTENT
@@ -54,6 +50,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var rxLocation: RxLocation
     private lateinit var mCurrentLeg: Leg
     private lateinit var mCurrentStep: Step
+    private lateinit var mapFragment: SupportMapFragment
 
     private var routeStarted = false
     private var isNextStepProcessing = false
@@ -73,7 +70,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_route)
-        val mapFragment = supportFragmentManager
+        mapFragment = supportFragmentManager
             .findFragmentById(R.id.routeMap) as SupportMapFragment
         mapFragment.getMapAsync(this)
         mapApiClient = MapsClient(this)
@@ -95,13 +92,18 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         mCompass.start()
     }
 
+    var isListenerVisible = true
     private fun initUI() {
         this.showMap.setOnClickListener {
-            if (this.routeListener.isVisible) {
-                this.routeListener.visibility = View.GONE
+            if (isListenerVisible) {
+                this.routeCamera.translationZ = -888f
+                this.routeListener.translationZ = -999f
+                isListenerVisible = false
                 this.showMap.setText(R.string.hide_map)
             } else {
-                this.routeListener.visibility = View.VISIBLE
+                this.routeCamera.translationZ = 888f
+                this.routeListener.translationZ = 999f
+                isListenerVisible = true
                 this.showMap.setText(R.string.show_map)
             }
         }
@@ -166,6 +168,10 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
             .addTo(subscriptions)
     }
 
+    override fun dangerDetected() {
+        TODO("Not yet implemented")
+    }
+
     override fun doubleClick(): Boolean {
         if (routeStarted) {
             makeVoiceToast(R.string.route_stopped).subscribe()
@@ -209,7 +215,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         isNextStepProcessing = false
         rxLocation.location().updates(request)
             .subscribeOn(Schedulers.io())
-            .debounce (30, TimeUnit.SECONDS)
+            .debounce(30, TimeUnit.SECONDS)
             .filter {
                 !isNextStepProcessing
             }
