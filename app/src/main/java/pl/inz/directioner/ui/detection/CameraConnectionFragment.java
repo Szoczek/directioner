@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Configuration;
@@ -36,6 +35,8 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.fragment.app.Fragment;
 
 import org.tensorflow.lite.examples.detection.customview.AutoFitTextureView;
 import org.tensorflow.lite.examples.detection.env.Logger;
@@ -374,10 +375,6 @@ public class CameraConnectionFragment extends Fragment {
     } catch (final CameraAccessException e) {
       LOGGER.e(e, "Exception!");
     } catch (final NullPointerException e) {
-      // Currently an NPE is thrown when the Camera2API is used but not supported on the
-      // device this code runs.
-      ErrorDialog.newInstance(getString(org.tensorflow.lite.examples.detection.R.string.tfe_od_camera_error))
-              .show(getChildFragmentManager(), FRAGMENT_DIALOG);
       throw new IllegalStateException(getString(org.tensorflow.lite.examples.detection.R.string.tfe_od_camera_error));
     }
 

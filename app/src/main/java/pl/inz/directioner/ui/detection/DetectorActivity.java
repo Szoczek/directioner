@@ -26,7 +26,6 @@ import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
-import android.os.SystemClock;
 import android.util.Size;
 import android.util.TypedValue;
 import android.widget.Toast;
@@ -66,23 +65,15 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private static final float TEXT_SIZE_DIP = 10;
     OverlayView trackingOverlay;
     private Integer sensorOrientation;
-
     private Classifier detector;
-
-    private long lastProcessingTimeMs;
     private Bitmap rgbFrameBitmap = null;
     private Bitmap croppedBitmap = null;
     private Bitmap cropCopyBitmap = null;
-
     private boolean computingDetection = false;
-
     private long timestamp = 0;
-
     private Matrix frameToCropTransform;
     private Matrix cropToFrameTransform;
-
     private MultiBoxTracker tracker;
-
     private BorderedText borderedText;
 
     @Override
@@ -137,12 +128,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
         trackingOverlay = (OverlayView) findViewById(R.id.tracking_overlay);
         trackingOverlay.addCallback(
-                canvas -> {
-                    tracker.draw(canvas);
-                    if (isDebug()) {
-                        tracker.drawDebug(canvas);
-                    }
-                });
+                canvas -> tracker.draw(canvas));
 
         tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
     }
@@ -175,9 +161,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         runInBackground(
                 () -> {
                     LOGGER.i("Running detection on image " + currTimestamp);
-                    final long startTime = SystemClock.uptimeMillis();
                     final List<Classifier.Recognition> results = detector.recognizeImage(croppedBitmap);
-                    lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 
                     cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
                     final Canvas canvas1 = new Canvas(cropCopyBitmap);
@@ -210,16 +194,6 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                     trackingOverlay.postInvalidate();
 
                     computingDetection = false;
-
-                    runOnUiThread(
-                            new Runnable() {
-                                @Override
-                                public void run() {
-                                    showFrameInfo(previewWidth + "x" + previewHeight);
-                                    showCropInfo(cropCopyBitmap.getWidth() + "x" + cropCopyBitmap.getHeight());
-                                    showInference(lastProcessingTimeMs + "ms");
-                                }
-                            });
                 });
     }
 

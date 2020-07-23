@@ -9,17 +9,15 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import io.objectbox.BoxStore
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 import pl.inz.directioner.App
 import pl.inz.directioner.R
-import pl.inz.directioner.components.services.tts.RxTextToSpeechService
 import pl.inz.directioner.components.interfaces.SwipeListener
 import pl.inz.directioner.components.listeners.OnSwipeListener
+import pl.inz.directioner.components.services.tts.RxTextToSpeechService
 import pl.inz.directioner.utils.RQ_ACCESS_FINE_LOCATION_PERMISSION
 import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
@@ -43,6 +41,11 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
     override fun onDestroy() {
         super.onDestroy()
         subscriptions.dispose()
+    }
+
+    override fun onPause() {
+        textToSpeech.cancelCurrent()
+        super.onPause()
     }
 
     private fun initLocationService() {
