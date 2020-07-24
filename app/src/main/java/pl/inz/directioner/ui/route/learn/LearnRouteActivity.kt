@@ -22,15 +22,16 @@ import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_learn_route.*
 import pl.inz.directioner.R
+import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
-import pl.inz.directioner.ui.detection.DetectorActivity
+import pl.inz.directioner.ui.detection.objectDetection.DangerDetectionActivity
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
+class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_LEARN_ROUTE_DATA_INTENT
@@ -61,16 +62,17 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
         setSubscriptions()
     }
 
+
     var isListenerVisible = true
     private fun initUI() {
         this.showMapLearn.setOnClickListener {
             if (isListenerVisible) {
-                this.learnRouteCamera.translationZ = -888f
+//                this.learnRouteCamera.translationZ = -888f
                 this.learnRouteListener.translationZ = -999f
                 isListenerVisible = false
                 this.showMapLearn.setText(R.string.hide_map)
             } else {
-                this.learnRouteCamera.translationZ = 888f
+//                this.learnRouteCamera.translationZ = 888f
                 this.learnRouteListener.translationZ = 999f
                 isListenerVisible = true
                 this.showMapLearn.setText(R.string.show_map)
@@ -111,10 +113,6 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
         mMap.isMyLocationEnabled = true
     }
 
-    override fun dangerDetected() {
-        TODO("Not yet implemented")
-    }
-
     override fun doubleClick(): Boolean {
         if (locationUpdatedStarted) {
             makeVoiceToast(R.string.route_learning_stopped).doOnComplete {
@@ -147,13 +145,34 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
         locationUpdatedStarted = false
     }
 
+    private val significantLocations = arrayListOf<Location>()
+    private fun updateSignificantMotionLocation(location: Location?) {
+        location ?: return
+
+        val lastLocation = significantLocations.last()
+
+        val distance = FloatArray(3)
+        Location.distanceBetween(
+            lastLocation.latitude,
+            lastLocation.longitude,
+            location.latitude,
+            location.longitude,
+            distance
+        )
+
+        if (distance[0] < 5f)
+            return
+
+        updateLocation(location, false)
+    }
+
     @SuppressLint("MissingPermission")
     private fun onSignificantMotion() {
         rxLocation.location().lastLocation()
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.io())
             .subscribe {
-                updateLocation(it, false)
+                updateSignificantMotionLocation(it)
             }.addTo(subscriptions)
     }
 

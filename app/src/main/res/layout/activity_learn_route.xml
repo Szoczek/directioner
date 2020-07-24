@@ -19,23 +19,21 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/showMapLearn"
-        android:alpha="0"
         android:text="@string/listener"
         android:translationZ="999sp" />
 
-    <FrameLayout
-        android:id="@+id/learnRouteCamera"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/showMapLearn"
-        android:translationZ="888sp">
+    <!--    <FrameLayout-->
+    <!--        android:id="@+id/learnRouteCamera"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="match_parent"-->
+    <!--        android:layout_below="@id/showMapLearn"-->
+    <!--        android:translationZ="888sp">-->
 
-        <FrameLayout
-            android:id="@+id/learnContainer"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:context=".ui.detection.CameraActivity" />
-    </FrameLayout>
+    <!--        <com.otaliastudios.cameraview.CameraView-->
+    <!--            android:id="@+id/learnRoutePreview"-->
+    <!--            android:layout_width="match_parent"-->
+    <!--            android:layout_height="match_parent"/>-->
+    <!--    </FrameLayout>-->
 
     <fragment
         android:id="@+id/learnRouteMap"

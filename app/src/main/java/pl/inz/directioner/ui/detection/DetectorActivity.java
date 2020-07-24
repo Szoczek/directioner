@@ -23,8 +23,10 @@ import org.tensorflow.lite.examples.detection.tflite.TFLiteObjectDetectionAPIMod
 import org.tensorflow.lite.examples.detection.tracking.MultiBoxTracker;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import pl.inz.directioner.R;
 
@@ -32,7 +34,7 @@ import pl.inz.directioner.R;
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
  * objects.
  */
-public abstract class DetectorActivity extends CameraActivity implements OnImageAvailableListener {
+public class DetectorActivity extends CameraActivity implements OnImageAvailableListener {
     private static final Logger LOGGER = new Logger();
 
     // Configuration values for the prepackaged SSD model.
@@ -59,13 +61,6 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
     private Matrix cropToFrameTransform;
     private MultiBoxTracker tracker;
     private BorderedText borderedText;
-    private boolean isLearn;
-
-
-    public DetectorActivity(boolean isLearn) {
-        this.isLearn = isLearn;
-
-    }
 
     @Override
     public void onPreviewSizeChosen(final Size size, final int rotation) {
@@ -88,7 +83,7 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
                             TF_OD_API_INPUT_SIZE,
                             TF_OD_API_IS_QUANTIZED);
 
-            setNumThreads(3);
+            setNumThreads(4);
             cropSize = TF_OD_API_INPUT_SIZE;
         } catch (final IOException e) {
             e.printStackTrace();
@@ -183,11 +178,46 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
                         }
                     }
 
+                    compareFrames(lastImageResults, mappedRecognitions);
+
                     tracker.trackResults(mappedRecognitions, currTimestamp);
                     trackingOverlay.postInvalidate();
 
+                    lastImageResults.clear();
+                    lastImageResults.addAll(mappedRecognitions);
                     computingDetection = false;
                 });
+    }
+
+    private List<Classifier.Recognition> lastImageResults = new ArrayList<>();
+
+    private void compareFrames(List<Classifier.Recognition> lastFrameSet, List<Classifier.Recognition> currentFrameSet) {
+        if (lastFrameSet.isEmpty() || currentFrameSet.isEmpty())
+            return;
+
+        currentFrameSet.forEach(x ->
+                lastFrameSet.forEach(y -> {
+                    if (Objects.equals(x.getTitle(), y.getTitle())) {
+                        float centerXDiff = Math.abs(y.getLocation().centerX() - x.getLocation().centerX());
+                        float centerYDiff = Math.abs(y.getLocation().centerY() - x.getLocation().centerY());
+
+                        if (centerXDiff < 50 || centerYDiff < 50) {
+                            float heightX = Math.abs(x.getLocation().top - x.getLocation().bottom);
+                            float heightY = Math.abs(y.getLocation().top - y.getLocation().bottom);
+
+                            float heightDiff = heightY - heightX;
+
+                            if (heightDiff > 100)
+                                dangerAhead(x, y);
+                        }
+                    }
+                })
+        );
+    }
+
+
+    private void dangerAhead(Classifier.Recognition before, Classifier.Recognition now) {
+        LOGGER.i("DANGER DETECTED!! " + "Before: " + before.getTitle() + " Now: " + now.getTitle());
     }
 
     @Override
@@ -207,14 +237,6 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
     }
 
     @Override
-    protected int getContainerLayoutId() {
-        if (isLearn)
-            return R.id.learnContainer;
-        else
-            return R.id.routeContainer;
-    }
-
-    @Override
     protected void setUseNNAPI(final boolean isChecked) {
         runInBackground(() -> detector.setUseNNAPI(isChecked));
     }
@@ -223,6 +245,4 @@ public abstract class DetectorActivity extends CameraActivity implements OnImage
     protected void setNumThreads(final int numThreads) {
         runInBackground(() -> detector.setNumThreads(numThreads));
     }
-
-    public abstract void dangerDetected();
 }

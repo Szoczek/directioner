@@ -26,18 +26,19 @@ import pl.inz.directioner.api.maps.MapsClient
 import pl.inz.directioner.api.models.DirectionsResponse
 import pl.inz.directioner.api.models.Leg
 import pl.inz.directioner.api.models.Step
+import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
-import pl.inz.directioner.ui.detection.DetectorActivity
+import pl.inz.directioner.ui.detection.objectDetection.DangerDetectionActivity
 import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
-class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
+class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_ROUTE_DATA_INTENT
@@ -96,12 +97,12 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
     private fun initUI() {
         this.showMap.setOnClickListener {
             if (isListenerVisible) {
-                this.routeCamera.translationZ = -888f
+//                this.routeCamera.translationZ = -888f
                 this.routeListener.translationZ = -999f
                 isListenerVisible = false
                 this.showMap.setText(R.string.hide_map)
             } else {
-                this.routeCamera.translationZ = 888f
+//                this.routeCamera.translationZ = 888f
                 this.routeListener.translationZ = 999f
                 isListenerVisible = true
                 this.showMap.setText(R.string.show_map)
@@ -166,10 +167,6 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
                 .subscribe()
         }.subscribe()
             .addTo(subscriptions)
-    }
-
-    override fun dangerDetected() {
-        TODO("Not yet implemented")
     }
 
     override fun doubleClick(): Boolean {
