@@ -7,14 +7,12 @@ import android.location.Location
 import android.os.Bundle
 import com.example.compass.Compass
 import com.example.compass.SOTW
-import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.patloew.rxlocation.RxLocation
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -24,6 +22,10 @@ import kotlinx.android.synthetic.main.activity_learn_route.*
 import pl.inz.directioner.R
 import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
+import pl.inz.directioner.components.services.location.RxLocationFactory
+import pl.inz.directioner.components.services.location.RxLocationManager
+import pl.inz.directioner.components.services.location.service.Priority
+import pl.inz.directioner.components.services.location.service.RxLocationAttributes
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
 import java.io.Serializable
@@ -39,9 +41,10 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var mMap: GoogleMap
     private lateinit var mRoute: Route
     private var locationUpdatedStarted = false
-    private lateinit var rxLocation: RxLocation
+
     private lateinit var mCompass: Compass
     private lateinit var mapFragment: SupportMapFragment
+    private lateinit var rxLocationManager: RxLocationManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +56,16 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
         initOnSwipeListener(this, this.learnRouteListener)
         initTextToSpeech(this)
-        rxLocation = RxLocation(this)
+
+        rxLocationManager = RxLocationFactory.create(
+            context = this, attributes = RxLocationAttributes(
+                priority = Priority.HighAccuracy,
+                requestTimeOut = TimeUnit.SECONDS.toMillis(30),
+                updateInterval = TimeUnit.SECONDS.toSeconds(5),
+                fastestInterval = TimeUnit.SECONDS.toSeconds(2),
+                useCalledThreadToEmitValue = false
+            )
+        )
         mCompass = Compass(this)
 
         initUI()
@@ -91,7 +103,6 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private var currentAzimuth: Pair<Int, SOTW>? = null
     private fun setSubscriptions() {
         mCompass.azimuthChangedSubject
-            .debounce(5000, TimeUnit.MILLISECONDS)
             .subscribe {
                 when {
                     currentAzimuth == null -> {
@@ -167,27 +178,22 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
 
     @SuppressLint("MissingPermission")
     private fun onSignificantMotion() {
-        rxLocation.location().lastLocation()
-            .observeOn(AndroidSchedulers.mainThread())
+        rxLocationManager.singleLocation()
             .subscribeOn(Schedulers.io())
-            .subscribe {
-                updateSignificantMotionLocation(it)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { location: Location, error: Throwable? ->
+                updateSignificantMotionLocation(location)
             }.addTo(subscriptions)
     }
 
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        val request = LocationRequest.create().apply {
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 1000
-        }
-
-        rxLocation.location().updates(request)
-            .subscribeOn(Schedulers.single())
-            .debounce(30, TimeUnit.SECONDS)
-            .subscribe {
-                updateLocation(it, true)
+        rxLocationManager.observeLocationChange()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { location: Location ->
+                updateLocation(location, true)
             }.addTo(subscriptions)
 
         locationUpdatedStarted = true

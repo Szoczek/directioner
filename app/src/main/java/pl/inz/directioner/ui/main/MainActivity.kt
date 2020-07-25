@@ -110,7 +110,7 @@ class MainActivity : BaseActivity() {
             )
         else
             startActivityForResult(
-                RouteActivity.newInstance(this, route),
+                RouteActivity.newInstance(this, route, false),
                 RQ_ROUTE_ACTIVITY
             )
     }

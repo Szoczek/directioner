@@ -8,12 +8,10 @@ import android.os.Bundle
 import android.view.WindowManager
 import com.example.compass.Compass
 import com.example.compass.SOTW
-import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.patloew.rxlocation.RxLocation
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.reactivex.Observable
@@ -29,6 +27,10 @@ import pl.inz.directioner.api.models.Step
 import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
+import pl.inz.directioner.components.services.location.RxLocationFactory
+import pl.inz.directioner.components.services.location.RxLocationManager
+import pl.inz.directioner.components.services.location.service.Priority
+import pl.inz.directioner.components.services.location.service.RxLocationAttributes
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
 import pl.inz.directioner.utils.toObservable
@@ -47,7 +49,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var mapApiClient: MapsClient
     private lateinit var mMapUiController: GoogleMapController
     private lateinit var mCompass: Compass
-    private lateinit var rxLocation: RxLocation
+    private lateinit var rxLocationManager: RxLocationManager
     private lateinit var mCurrentLeg: Leg
     private lateinit var mCurrentStep: Step
     private lateinit var mapFragment: SupportMapFragment
@@ -77,7 +79,16 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         initOnSwipeListener(this, this.routeListener)
         initTextToSpeech(this)
         mCompass = Compass(this)
-        rxLocation = RxLocation(this)
+
+        rxLocationManager = RxLocationFactory.create(
+            context = this, attributes = RxLocationAttributes(
+                priority = Priority.HighAccuracy,
+                requestTimeOut = TimeUnit.SECONDS.toMillis(30),
+                updateInterval = TimeUnit.SECONDS.toSeconds(5),
+                fastestInterval = TimeUnit.SECONDS.toSeconds(2),
+                useCalledThreadToEmitValue = false
+            )
+        )
 
         initUI()
         introduction()
@@ -111,7 +122,7 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
 
     @SuppressLint("MissingPermission")
     private fun start() {
-        rxLocation.location().lastLocation()
+        rxLocationManager.singleLocation()
             .subscribeOn(Schedulers.io())
             .flatMap { currentLocation ->
                 val route = getRoute(dataIntent.routeId)
@@ -140,13 +151,13 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
                 else mutableListOf()
 
                 mapApiClient.getDirectionsFromLatLng(
-                    startPoint,
-//                    originCoordinates,
-                    endPoint,
-//                    destinationCoordinates,
-                    mWaypoints
-//                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
-                ).toMaybe()
+//                    startPoint,
+                    originCoordinates,
+//                    endPoint,
+                    destinationCoordinates,
+//                    mWaypoints
+                    waypoints.map { LatLng(it.lat!!, it.lon!!) }
+                )
 
             }.observeOn(AndroidSchedulers.mainThread())
             .subscribe { response: DirectionsResponse ->
@@ -183,11 +194,13 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
 
     private var bypassFilters = false
     override fun leftSwipe() {
-        bypassFilters = true
+        if (dataIntent.isMockup)
+            bypassFilters = true
     }
 
     override fun rightSwipe() {
-        finishRoute()
+        if (dataIntent.isMockup)
+            finishRoute()
     }
 
     override fun longClick() {
@@ -206,14 +219,10 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
 
     @SuppressLint("MissingPermission")
     private fun startRoute() {
-        val request = LocationRequest.create().apply {
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = 1000
-        }
         isNextStepProcessing = false
-        rxLocation.location().updates(request)
+        rxLocationManager.observeLocationChange()
             .subscribeOn(Schedulers.io())
-            .debounce(30, TimeUnit.SECONDS)
+            .debounce(10, TimeUnit.SECONDS)
             .filter {
                 !isNextStepProcessing
             }
@@ -291,7 +300,6 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
 
     private fun onCurrentLocationUpdated(currentLocation: Location) {
         val currentLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
-//        mMapUiController.replaceUserMarker(currentLatLng)
     }
 
     private fun isLocationCloseToGoal(location: Location): Boolean {
@@ -340,15 +348,16 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
     companion object : RouteInstance {
         const val ARG_ROUTE_DATA_INTENT = "route-data-intent"
 
-        override fun newInstance(context: Context, route: Route): Intent {
+        override fun newInstance(context: Context, route: Route, isMockup: Boolean): Intent {
             return Intent(context, RouteActivity::class.java).putExtra(
                 ARG_ROUTE_DATA_INTENT,
-                DataIntent(route.id)
+                DataIntent(route.id, isMockup)
             )
         }
     }
 
     data class DataIntent(
-        val routeId: Long
+        val routeId: Long,
+        val isMockup: Boolean
     ) : Serializable
 }
