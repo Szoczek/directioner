@@ -29,9 +29,9 @@ class RxTTSObservableOnSubscribe(
 
     override fun dispose() {
         if (textToSpeech != null) {
-            textToSpeech!!.setOnUtteranceProgressListener(null)
-            textToSpeech!!.stop()
-            textToSpeech!!.shutdown()
+            textToSpeech?.setOnUtteranceProgressListener(null)
+            textToSpeech?.stop()
+            textToSpeech?.shutdown()
             textToSpeech = null
         }
 

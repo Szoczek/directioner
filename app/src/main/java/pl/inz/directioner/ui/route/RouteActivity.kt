@@ -188,8 +188,91 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
 
                 mMapUiController.clearMarkersAndRoute()
                 mMapUiController.setMarkersAndRoute(currentRoute)
+
+                readStartInstructions(mCurrentStep.instructions)
                 startRoute()
             }.addTo(subscriptions)
+    }
+
+    private fun readStartInstructions(instructions: String) {
+        val instructionsDirection = when {
+            instructions.contains("west", true) -> SOTW.WEST
+            instructions.contains("east", true) -> SOTW.EAST
+            instructions.contains("north", true) -> SOTW.NORTH
+            instructions.contains("south", true) -> SOTW.SOUTH
+            else -> null
+        }
+
+        when (currentAzimuth.second) {
+            SOTW.EAST -> {
+                when (instructionsDirection) {
+                    SOTW.NORTH -> makeVoiceToast(R.string.turn_right).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.SOUTH -> makeVoiceToast(R.string.turn_left).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.WEST -> makeVoiceToast(R.string.turn_around).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    else -> makeVoiceToast(R.string.go_straight).subscribe().addTo(subscriptions)
+                }
+            }
+            SOTW.NORTH, SOTW.NORTH_EAST, SOTW.NORTH_WEST -> {
+                when (instructionsDirection) {
+                    SOTW.EAST -> makeVoiceToast(R.string.turn_left).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.SOUTH -> makeVoiceToast(R.string.turn_around).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.WEST -> makeVoiceToast(R.string.turn_right).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    else -> makeVoiceToast(R.string.go_straight).subscribe().addTo(subscriptions)
+                }
+            }
+            SOTW.SOUTH, SOTW.SOUTH_EAST, SOTW.SOUTH_WEST -> {
+                when (instructionsDirection) {
+                    SOTW.NORTH -> makeVoiceToast(R.string.turn_around).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.EAST -> makeVoiceToast(R.string.turn_right).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.WEST -> makeVoiceToast(R.string.turn_left).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    else -> makeVoiceToast(R.string.go_straight).subscribe().addTo(subscriptions)
+                }
+            }
+            SOTW.WEST -> {
+                when (instructionsDirection) {
+                    SOTW.NORTH -> makeVoiceToast(R.string.turn_left).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.EAST -> makeVoiceToast(R.string.turn_around).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    SOTW.SOUTH -> makeVoiceToast(R.string.turn_right).doOnComplete {
+                        makeVoiceToast(R.string.go_straight)
+                    }.subscribe().addTo(subscriptions)
+
+                    else -> makeVoiceToast(R.string.go_straight).subscribe().addTo(subscriptions)
+                }
+            }
+        }
     }
 
     private fun introduction() {
@@ -204,6 +287,7 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
         if (routeStarted) {
             makeVoiceToast(R.string.route_stopped).subscribe()
                 .addTo(subscriptions)
+            routeStarted = false
         } else {
             makeVoiceToast(R.string.route_started).subscribe()
                 .addTo(subscriptions)

@@ -70,8 +70,10 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
             .debounce(200, TimeUnit.MILLISECONDS)
     }
 
-    fun makeVoiceToast(id: Int): Observable<Boolean> {
-        this.textToSpeech.cancelCurrent()
+    fun makeVoiceToast(id: Int, cancel: Boolean = true): Observable<Boolean> {
+        if (cancel)
+            this.textToSpeech.cancelCurrent()
+
         val text = resources.getString(id)
         return makeVoiceToast(text)
     }
