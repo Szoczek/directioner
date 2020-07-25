@@ -1,5 +1,6 @@
 package pl.inz.directioner.ui.detection;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -10,8 +11,10 @@ import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
+import android.os.Bundle;
 import android.util.Size;
 import android.util.TypedValue;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.tensorflow.lite.examples.detection.customview.OverlayView;
@@ -24,11 +27,16 @@ import org.tensorflow.lite.examples.detection.tracking.MultiBoxTracker;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
 import pl.inz.directioner.R;
+import pl.inz.directioner.components.services.tts.RxTextToSpeechService;
 
 /**
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
@@ -122,6 +130,26 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     }
 
     @Override
+    protected void onCreate(final Bundle savedInstanceState) {
+        super.onCreate(null);
+
+        initTextToSpeech(this);
+    }
+
+    private RxTextToSpeechService textToSpeech;
+
+    protected void initTextToSpeech(Context context) {
+        textToSpeech = new RxTextToSpeechService(context);
+    }
+
+
+    Observable<Boolean> makeVoiceToast(String text) {
+        this.textToSpeech.cancelCurrent();
+        return this.textToSpeech.speak(text)
+                .debounce(10, TimeUnit.SECONDS);
+    }
+
+    @Override
     protected void processImage() {
         ++timestamp;
         final long currTimestamp = timestamp;
@@ -183,6 +211,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                     tracker.trackResults(mappedRecognitions, currTimestamp);
                     trackingOverlay.postInvalidate();
 
+
                     lastImageResults.clear();
                     lastImageResults.addAll(mappedRecognitions);
                     computingDetection = false;
@@ -190,6 +219,11 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     }
 
     private List<Classifier.Recognition> lastImageResults = new ArrayList<>();
+    ArrayList<String> vehicles = new ArrayList<String>(
+            Arrays.asList("bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat"));
+
+    ArrayList<String> animals = new ArrayList<String>(
+            Arrays.asList("bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe"));
 
     private void compareFrames(List<Classifier.Recognition> lastFrameSet, List<Classifier.Recognition> currentFrameSet) {
         if (lastFrameSet.isEmpty() || currentFrameSet.isEmpty())
@@ -197,16 +231,24 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
         currentFrameSet.forEach(x ->
                 lastFrameSet.forEach(y -> {
-                    if (Objects.equals(x.getTitle(), y.getTitle())) {
+                    float previewSize = previewHeight * previewWidth;
+                    float heightX = Math.abs(x.getLocation().top - x.getLocation().bottom);
+                    float widthX = Math.abs(x.getLocation().left - x.getLocation().right);
+                    float zSize = heightX * widthX;
+                    float diff = previewSize / zSize;
+
+                    if (diff < 4)
+                        objectTooClose(x);
+
+
+                    boolean danger = vehicles.contains(x.getTitle()) || animals.contains(x.getTitle());
+                    if (Objects.equals(x.getTitle(), y.getTitle()) && danger) {
                         float centerXDiff = Math.abs(y.getLocation().centerX() - x.getLocation().centerX());
                         float centerYDiff = Math.abs(y.getLocation().centerY() - x.getLocation().centerY());
 
                         if (centerXDiff < 50 || centerYDiff < 50) {
-                            float heightX = Math.abs(x.getLocation().top - x.getLocation().bottom);
                             float heightY = Math.abs(y.getLocation().top - y.getLocation().bottom);
-
                             float heightDiff = heightY - heightX;
-
                             if (heightDiff > 100)
                                 dangerAhead(x, y);
                         }
@@ -215,9 +257,44 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         );
     }
 
+    Date lastSpoken = new Date();
+
+    private void objectTooClose(Classifier.Recognition obj) {
+        LOGGER.i("CLOSE OBJECT DETECTED!! " + obj.getTitle());
+
+        runOnUiThread(() -> {
+            TextView tv = this.findViewById(R.id.tv);
+            tv.setText("CLOSE OBJECT DETECTED!! " + "Object: " + obj.getTitle());
+        });
+
+        Date current = new Date();
+        int a = current.getSeconds() - lastSpoken.getSeconds();
+        if (a < 5)
+            return;
+
+        lastSpoken = new Date();
+        String txt = "Wykryto duży obiekt w pobliżu, zachowaj ostrożność";
+        this.makeVoiceToast(txt)
+                .subscribe();
+    }
 
     private void dangerAhead(Classifier.Recognition before, Classifier.Recognition now) {
         LOGGER.i("DANGER DETECTED!! " + "Before: " + before.getTitle() + " Now: " + now.getTitle());
+
+        runOnUiThread(() -> {
+            TextView tv = this.findViewById(R.id.tv);
+            tv.setText("DANGER DETECTED!! " + "Before: " + before.getTitle() + " Now: " + now.getTitle());
+        });
+
+        Date current = new Date();
+        int a = current.getSeconds() - lastSpoken.getSeconds();
+        if (a < 15)
+            return;
+
+        lastSpoken = new Date();
+        String txt = "Wykryto zbliżający się obiekt, zachowaj ostrożność";
+        this.makeVoiceToast(txt)
+                .subscribe();
     }
 
     @Override

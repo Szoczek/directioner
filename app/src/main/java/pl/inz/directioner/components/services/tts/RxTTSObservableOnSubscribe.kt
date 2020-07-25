@@ -47,6 +47,9 @@ class RxTTSObservableOnSubscribe(
     }
 
     override fun onInit(status: Int) {
+        if (textToSpeech == null)
+            textToSpeech = TextToSpeech(context, this)
+
         val languageCode = textToSpeech!!.setLanguage(locale)
         if (languageCode != TextToSpeech.LANG_MISSING_DATA && languageCode != TextToSpeech.LANG_NOT_SUPPORTED) {
             textToSpeech!!.setPitch(1f)
