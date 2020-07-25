@@ -26,7 +26,6 @@ import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
-import pl.inz.directioner.ui.detection.objectDetection.DangerDetectionActivity
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit

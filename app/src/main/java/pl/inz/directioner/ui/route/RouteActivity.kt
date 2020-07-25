@@ -31,7 +31,6 @@ import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
-import pl.inz.directioner.ui.detection.objectDetection.DangerDetectionActivity
 import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
