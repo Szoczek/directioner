@@ -21,7 +21,6 @@ import android.view.Surface;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
@@ -30,8 +29,9 @@ import org.tensorflow.lite.examples.detection.env.Logger;
 import java.nio.ByteBuffer;
 
 import pl.inz.directioner.R;
+import pl.inz.directioner.components.BaseActivity;
 
-public abstract class CameraActivity extends AppCompatActivity
+public abstract class CameraActivity extends BaseActivity
         implements OnImageAvailableListener,
         Camera.PreviewCallback {
 
@@ -312,8 +312,10 @@ public abstract class CameraActivity extends AppCompatActivity
         camera2Fragment.setCamera(cameraId);
         fragment = camera2Fragment;
 
-        getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(getContainerId(), fragment).commit();
     }
+
+    abstract int getContainerId();
 
     protected void fillBytes(final Plane[] planes, final byte[][] yuvBytes) {
         // Because of the variable row stride it's not possible to know in

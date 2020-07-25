@@ -1,6 +1,5 @@
 package pl.inz.directioner.ui.main
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import io.objectbox.Box
@@ -12,10 +11,8 @@ import pl.inz.directioner.R
 import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.db.models.Route
 import pl.inz.directioner.db.models.Route_
-import pl.inz.directioner.ui.detection.DetectorActivity
 import pl.inz.directioner.ui.route.RouteActivity
 import pl.inz.directioner.ui.route.learn.LearnRouteActivity
-import pl.inz.directioner.utils.RQ_DETECTION_ACTIVITY
 import pl.inz.directioner.utils.RQ_LEARN_ROUTE_ACTIVITY
 import pl.inz.directioner.utils.RQ_ROUTE_ACTIVITY
 
@@ -94,12 +91,6 @@ class MainActivity : BaseActivity() {
 
     override fun longClick() {
         Log.e("Click", "Long click")
-        startDetectionActivity()
-    }
-
-    private fun startDetectionActivity() {
-        val intent = Intent(this, DetectorActivity::class.java)
-        startActivityForResult(intent, RQ_DETECTION_ACTIVITY)
     }
 
     private fun startRouteActivity(route: Route?, no: Int?, name: String?) {

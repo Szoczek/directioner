@@ -24,7 +24,6 @@ import pl.inz.directioner.api.maps.MapsClient
 import pl.inz.directioner.api.models.DirectionsResponse
 import pl.inz.directioner.api.models.Leg
 import pl.inz.directioner.api.models.Step
-import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.controllers.GoogleMapController
 import pl.inz.directioner.components.interfaces.RouteInstance
 import pl.inz.directioner.components.services.location.RxLocationFactory
@@ -33,13 +32,14 @@ import pl.inz.directioner.components.services.location.service.Priority
 import pl.inz.directioner.components.services.location.service.RxLocationAttributes
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.ui.detection.DetectorActivity
 import pl.inz.directioner.utils.toObservable
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
-class RouteActivity : BaseActivity(), OnMapReadyCallback {
+class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_ROUTE_DATA_INTENT
@@ -103,16 +103,37 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
         mCompass.start()
     }
 
+    var lastSpoken = Date()
+    override fun objectTooClose() {
+        val current = Date()
+        val a = current.seconds - lastSpoken.seconds
+        if (a < 5) return
+        lastSpoken = Date()
+        val txt = "Wykryto duży obiekt w pobliżu, zachowaj ostrożność"
+        this.makeVoiceToast(txt)
+            .subscribe()
+    }
+
+    override fun dangerAhead() {
+        val current = Date()
+        val a = current.seconds - lastSpoken.seconds
+        if (a < 15) return
+        lastSpoken = Date()
+        val txt = "Wykryto zbliżający się obiekt, zachowaj ostrożność"
+        this.makeVoiceToast(txt)
+            .subscribe()
+    }
+
     var isListenerVisible = true
     private fun initUI() {
         this.showMap.setOnClickListener {
             if (isListenerVisible) {
-//                this.routeCamera.translationZ = -888f
+                this.routeCamera.translationZ = -888f
                 this.routeListener.translationZ = -999f
                 isListenerVisible = false
                 this.showMap.setText(R.string.hide_map)
             } else {
-//                this.routeCamera.translationZ = 888f
+                this.routeCamera.translationZ = 888f
                 this.routeListener.translationZ = 999f
                 isListenerVisible = true
                 this.showMap.setText(R.string.show_map)
@@ -184,10 +205,10 @@ class RouteActivity : BaseActivity(), OnMapReadyCallback {
             makeVoiceToast(R.string.route_stopped).subscribe()
                 .addTo(subscriptions)
         } else {
-            makeVoiceToast(R.string.route_started).doOnComplete {
-                start()
-            }.subscribe()
+            makeVoiceToast(R.string.route_started).subscribe()
                 .addTo(subscriptions)
+
+            start()
         }
         return true
     }

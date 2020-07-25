@@ -1,6 +1,5 @@
 package pl.inz.directioner.ui.detection;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
@@ -14,7 +13,6 @@ import android.media.ImageReader.OnImageAvailableListener;
 import android.os.Bundle;
 import android.util.Size;
 import android.util.TypedValue;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.tensorflow.lite.examples.detection.customview.OverlayView;
@@ -28,21 +26,17 @@ import org.tensorflow.lite.examples.detection.tracking.MultiBoxTracker;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
-import io.reactivex.Observable;
 import pl.inz.directioner.R;
-import pl.inz.directioner.components.services.tts.RxTextToSpeechService;
 
 /**
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
  * objects.
  */
-public class DetectorActivity extends CameraActivity implements OnImageAvailableListener {
+public abstract class DetectorActivity extends CameraActivity implements OnImageAvailableListener {
     private static final Logger LOGGER = new Logger();
 
     // Configuration values for the prepackaged SSD model.
@@ -69,6 +63,11 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     private Matrix cropToFrameTransform;
     private MultiBoxTracker tracker;
     private BorderedText borderedText;
+    private boolean isLearning;
+
+    public DetectorActivity(boolean isLearning) {
+        this.isLearning = isLearning;
+    }
 
     @Override
     public void onPreviewSizeChosen(final Size size, final int rotation) {
@@ -133,20 +132,6 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(null);
 
-        initTextToSpeech(this);
-    }
-
-    private RxTextToSpeechService textToSpeech;
-
-    protected void initTextToSpeech(Context context) {
-        textToSpeech = new RxTextToSpeechService(context);
-    }
-
-
-    Observable<Boolean> makeVoiceToast(String text) {
-        this.textToSpeech.cancelCurrent();
-        return this.textToSpeech.speak(text)
-                .debounce(10, TimeUnit.SECONDS);
     }
 
     @Override
@@ -238,7 +223,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                     float diff = previewSize / zSize;
 
                     if (diff < 4)
-                        objectTooClose(x);
+                        objectTooClose();
 
 
                     boolean danger = vehicles.contains(x.getTitle()) || animals.contains(x.getTitle());
@@ -250,56 +235,28 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                             float heightY = Math.abs(y.getLocation().top - y.getLocation().bottom);
                             float heightDiff = heightY - heightX;
                             if (heightDiff > 100)
-                                dangerAhead(x, y);
+                                dangerAhead();
                         }
                     }
                 })
         );
     }
 
-    Date lastSpoken = new Date();
+    abstract public void objectTooClose();
 
-    private void objectTooClose(Classifier.Recognition obj) {
-        LOGGER.i("CLOSE OBJECT DETECTED!! " + obj.getTitle());
-
-        runOnUiThread(() -> {
-            TextView tv = this.findViewById(R.id.tv);
-            tv.setText("CLOSE OBJECT DETECTED!! " + "Object: " + obj.getTitle());
-        });
-
-        Date current = new Date();
-        int a = current.getSeconds() - lastSpoken.getSeconds();
-        if (a < 5)
-            return;
-
-        lastSpoken = new Date();
-        String txt = "Wykryto duży obiekt w pobliżu, zachowaj ostrożność";
-        this.makeVoiceToast(txt)
-                .subscribe();
-    }
-
-    private void dangerAhead(Classifier.Recognition before, Classifier.Recognition now) {
-        LOGGER.i("DANGER DETECTED!! " + "Before: " + before.getTitle() + " Now: " + now.getTitle());
-
-        runOnUiThread(() -> {
-            TextView tv = this.findViewById(R.id.tv);
-            tv.setText("DANGER DETECTED!! " + "Before: " + before.getTitle() + " Now: " + now.getTitle());
-        });
-
-        Date current = new Date();
-        int a = current.getSeconds() - lastSpoken.getSeconds();
-        if (a < 15)
-            return;
-
-        lastSpoken = new Date();
-        String txt = "Wykryto zbliżający się obiekt, zachowaj ostrożność";
-        this.makeVoiceToast(txt)
-                .subscribe();
-    }
+    abstract public void dangerAhead();
 
     @Override
     protected int getLayoutId() {
         return R.layout.tfe_od_camera_connection_fragment_tracking;
+    }
+
+    @Override
+    protected int getContainerId() {
+        if (isLearning)
+            return R.id.learnContainer;
+        else
+            return R.id.routeContainer;
     }
 
     @Override

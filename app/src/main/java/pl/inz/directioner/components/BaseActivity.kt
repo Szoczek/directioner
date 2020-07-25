@@ -65,11 +65,15 @@ open class BaseActivity : AppCompatActivity(), SwipeListener {
             )
     }
 
+    fun makeVoiceToast(text: String): Observable<Boolean> {
+        return this.textToSpeech.speak(text)
+            .debounce(200, TimeUnit.MILLISECONDS)
+    }
+
     fun makeVoiceToast(id: Int): Observable<Boolean> {
         this.textToSpeech.cancelCurrent()
         val text = resources.getString(id)
-        return this.textToSpeech.speak(text)
-            .debounce(200, TimeUnit.MILLISECONDS)
+        return makeVoiceToast(text)
     }
 
     private fun checkGpsPermission(): Boolean {

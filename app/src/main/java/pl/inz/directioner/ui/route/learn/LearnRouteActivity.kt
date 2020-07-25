@@ -20,7 +20,6 @@ import io.reactivex.rxkotlin.addTo
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_learn_route.*
 import pl.inz.directioner.R
-import pl.inz.directioner.components.BaseActivity
 import pl.inz.directioner.components.interfaces.NewRouteInstance
 import pl.inz.directioner.components.services.location.RxLocationFactory
 import pl.inz.directioner.components.services.location.RxLocationManager
@@ -28,11 +27,12 @@ import pl.inz.directioner.components.services.location.service.Priority
 import pl.inz.directioner.components.services.location.service.RxLocationAttributes
 import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
+import pl.inz.directioner.ui.detection.DetectorActivity
 import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
+class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
     private val dataIntent: DataIntent by lazy {
         intent.getSerializableExtra(
             ARG_LEARN_ROUTE_DATA_INTENT
@@ -78,12 +78,12 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun initUI() {
         this.showMapLearn.setOnClickListener {
             if (isListenerVisible) {
-//                this.learnRouteCamera.translationZ = -888f
+                this.learnRouteCamera.translationZ = -888f
                 this.learnRouteListener.translationZ = -999f
                 isListenerVisible = false
                 this.showMapLearn.setText(R.string.hide_map)
             } else {
-//                this.learnRouteCamera.translationZ = 888f
+                this.learnRouteCamera.translationZ = 888f
                 this.learnRouteListener.translationZ = 999f
                 isListenerVisible = true
                 this.showMapLearn.setText(R.string.show_map)
@@ -159,7 +159,9 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
     private fun updateSignificantMotionLocation(location: Location?) {
         location ?: return
 
-        val lastLocation = significantLocations.last()
+        val lastLocation = significantLocations.lastOrNull()
+
+        lastLocation ?: return
 
         val distance = FloatArray(3)
         Location.distanceBetween(
@@ -173,6 +175,7 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         if (distance[0] < 5f)
             return
 
+        significantLocations.add(location)
         updateLocation(location, false)
     }
 
@@ -212,6 +215,27 @@ class LearnRouteActivity : BaseActivity(), OnMapReadyCallback {
         val newLatLng = LatLng(currentLocation.lat!!, currentLocation.lon!!)
         mMap.addMarker(createMarker(newLatLng))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newLatLng, 25f))
+    }
+
+    var lastSpoken = Date()
+    override fun objectTooClose() {
+        val current = Date()
+        val a = current.seconds - lastSpoken.seconds
+        if (a < 5) return
+        lastSpoken = Date()
+        val txt = "Wykryto duży obiekt w pobliżu, zachowaj ostrożność"
+        this.makeVoiceToast(txt)
+            .subscribe()
+    }
+
+    override fun dangerAhead() {
+        val current = Date()
+        val a = current.seconds - lastSpoken.seconds
+        if (a < 15) return
+        lastSpoken = Date()
+        val txt = "Wykryto zbliżający się obiekt, zachowaj ostrożność"
+        this.makeVoiceToast(txt)
+            .subscribe()
     }
 
     private fun createMarker(latLng: LatLng): MarkerOptions {
