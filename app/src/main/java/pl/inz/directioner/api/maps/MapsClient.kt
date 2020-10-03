@@ -10,18 +10,28 @@ import pl.inz.directioner.api.maps.utils.Modes
 import pl.inz.directioner.api.models.DirectionsResponse
 import java.util.*
 
-class MapsClient(
-    private val context: Context
-) : BaseClient<MapsApi>(
+class MapsClient(private val context: Context) : BaseClient<MapsApi>(
     "https://maps.googleapis.com/maps/api/",
     MapsApi::class.java
 ) {
     override val apiKey: String
         get() = context.getString(R.string.google_maps_key)
 
+    private fun getDirections(
+        origin: String, destination: String, waypoints: String?,
+        mode: String
+    ): Single<DirectionsResponse> {
+        return client().getDirections(
+            origin = origin,
+            destination = destination,
+            mode = mode,
+            key = apiKey,
+            waypoints = waypoints
+        ).subscribeOn(Schedulers.io())
+    }
+
     fun getDirectionsFromLatLng(
-        origin: LatLng,
-        destination: LatLng,
+        origin: LatLng, destination: LatLng,
         waypoints: Collection<LatLng> = listOf(),
         mode: Modes = Modes.WALKING
     ): Single<DirectionsResponse> {
@@ -35,20 +45,5 @@ class MapsClient(
         }
 
         return getDirections(originParam, destinationParam, waypointsParam, modeParam)
-    }
-
-    private fun getDirections(
-        origin: String,
-        destination: String,
-        waypoints: String?,
-        mode: String
-    ): Single<DirectionsResponse> {
-        return client().getDirections(
-            origin = origin,
-            destination = destination,
-            mode = mode,
-            key = apiKey,
-            waypoints = waypoints
-        ).subscribeOn(Schedulers.io())
     }
 }

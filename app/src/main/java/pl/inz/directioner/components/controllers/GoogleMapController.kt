@@ -47,7 +47,7 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
                             .fromBitmap(
                                 GoogleMapFactory.drawMarker(
                                     mContext,
-                                    "S${leg.steps.indexOf(it)}"
+                                    "${leg.steps.indexOf(it)}"
                                 )
                             )
                     )
@@ -60,7 +60,7 @@ class GoogleMapController(context: Context, googleMap: GoogleMap) {
                             .fromBitmap(
                                 GoogleMapFactory.drawMarker(
                                     mContext,
-                                    "K${leg.steps.indexOf(it)}"
+                                    "${leg.steps.indexOf(it)}"
                                 )
                             )
                     )

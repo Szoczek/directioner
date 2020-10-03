@@ -2,6 +2,7 @@ package pl.inz.directioner.ui.main
 
 import android.os.Bundle
 import android.util.Log
+import com.google.android.gms.maps.model.LatLng
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.objectbox.kotlin.equal
@@ -9,12 +10,14 @@ import io.reactivex.rxkotlin.addTo
 import kotlinx.android.synthetic.main.activity_main.*
 import pl.inz.directioner.R
 import pl.inz.directioner.components.BaseActivity
+import pl.inz.directioner.db.models.MyLocation
 import pl.inz.directioner.db.models.Route
 import pl.inz.directioner.db.models.Route_
 import pl.inz.directioner.ui.route.RouteActivity
 import pl.inz.directioner.ui.route.learn.LearnRouteActivity
 import pl.inz.directioner.utils.RQ_LEARN_ROUTE_ACTIVITY
 import pl.inz.directioner.utils.RQ_ROUTE_ACTIVITY
+import java.util.*
 
 class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,7 +49,7 @@ class MainActivity : BaseActivity() {
         makeVoiceToast(R.string.one).subscribe()
             .addTo(subscriptions)
 
-        val route = getRouteByNo(1)
+        val route = getRoute()
         if (route == null)
             startRouteActivity(null, 1, "Jeden")
         else
@@ -104,6 +107,36 @@ class MainActivity : BaseActivity() {
                 RouteActivity.newInstance(this, route, false),
                 RQ_ROUTE_ACTIVITY
             )
+    }
+
+    private fun getRoute(): Route {
+        val box: Box<Route> = db.boxFor()
+
+        val fRoute = Route()
+        fRoute.no = 1
+        fRoute.name = "Jeden"
+
+        //Mockup data
+        var mWaypoints = listOf(
+            LatLng(37.422196, -122.091758),
+            LatLng(37.415204, -122.092855),
+            LatLng(37.411724, -122.093737),
+            LatLng(37.411953, -122.097885)
+        )
+        mWaypoints.forEach {
+            var tmp = MyLocation(
+                alt = 0.0,
+                lat = it.latitude,
+                lon = it.longitude,
+                date = Date()
+            )
+
+            tmp.route.target = fRoute
+        }
+
+        box.put(fRoute)
+
+        return fRoute
     }
 
     private fun getRouteByNo(no: Int): Route? {

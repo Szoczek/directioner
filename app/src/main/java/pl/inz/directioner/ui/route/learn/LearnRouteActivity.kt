@@ -121,6 +121,8 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         mMap.isMyLocationEnabled = true
+
+        addMarkesrs()
     }
 
     override fun doubleClick(): Boolean {
@@ -215,6 +217,21 @@ class LearnRouteActivity : DetectorActivity(true), OnMapReadyCallback {
         val newLatLng = LatLng(currentLocation.lat!!, currentLocation.lon!!)
         mMap.addMarker(createMarker(newLatLng))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newLatLng, 25f))
+    }
+
+    private var startPoint = LatLng(37.422196, -122.091758)
+    private var mWaypoints = listOf(
+        LatLng(37.415204, -122.092855),
+        LatLng(37.411724, -122.093737)
+    )
+    private var endPoint = LatLng(37.411953, -122.097885)
+
+    private fun addMarkesrs() {
+        mMap.addMarker(createMarker(startPoint))
+        mWaypoints.forEach {
+            mMap.addMarker(createMarker(it))
+        }
+        mMap.addMarker(createMarker(endPoint))
     }
 
     var lastSpoken = Date()

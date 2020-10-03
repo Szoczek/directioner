@@ -172,11 +172,8 @@ class RouteActivity : DetectorActivity(false), OnMapReadyCallback {
                 else mutableListOf()
 
                 mapApiClient.getDirectionsFromLatLng(
-//                    startPoint,
                     originCoordinates,
-//                    endPoint,
                     destinationCoordinates,
-//                    mWaypoints
                     waypoints.map { LatLng(it.lat!!, it.lon!!) }
                 )
 
